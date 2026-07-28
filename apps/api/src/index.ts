@@ -1,0 +1,63 @@
+import { serve } from '@hono/node-server';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { secureHeaders } from 'hono/secure-headers';
+import { auth } from './auth.js';
+import { env } from './env.js';
+import { requireAuth, requireRole } from './middleware/auth.js';
+import { exercisesRoutes } from './routes/exercises.js';
+import { plansRoutes } from './routes/plans.js';
+import { coachReportsRoutes, studentReportsRoutes } from './routes/reports.js';
+import { studentsRoutes } from './routes/students.js';
+import { studentPlansRoutes } from './routes/student-plans.js';
+import { uploadsRoutes } from './routes/uploads.js';
+import { workoutsRoutes } from './routes/workouts.js';
+import type { AppEnv } from './types.js';
+
+const app = new Hono<AppEnv>();
+
+app.use('*', logger());
+app.use('*', secureHeaders());
+app.use(
+  '*',
+  cors({
+    origin: env.WEB_ORIGIN,
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Demo-Role'],
+    allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    exposeHeaders: ['Content-Length'],
+    maxAge: 600,
+    credentials: true,
+  }),
+);
+
+app.get('/health', (c) => c.json({ status: 'ok', service: 'fitflow-api' }));
+app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
+
+app.use('/api/*', requireAuth);
+app.use('/api/coach/*', requireRole('coach'));
+app.use('/api/student/*', requireRole('student'));
+
+app.route('/api/coach/students', studentsRoutes);
+app.route('/api/coach/exercises', exercisesRoutes);
+app.route('/api/coach/plans', plansRoutes);
+app.route('/api/coach/reports', coachReportsRoutes);
+app.route('/api/student/reports', studentReportsRoutes);
+app.route('/api/student/plans', studentPlansRoutes);
+app.route('/api/student/workouts', workoutsRoutes);
+app.route('/api/uploads', uploadsRoutes);
+
+app.notFound((c) => c.json({ message: 'مسیر پیدا نشد.' }, 404));
+app.onError((error, c) => {
+  console.error(error);
+  return c.json(
+    { message: env.NODE_ENV === 'production' ? 'خطای داخلی سرور.' : error.message },
+    500,
+  );
+});
+
+serve({ fetch: app.fetch, port: env.PORT }, (info) => {
+  console.log(`FitFlow API listening on http://localhost:${info.port}`);
+});
+
+export type ApiType = typeof app;

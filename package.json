@@ -1,0 +1,32 @@
+{
+  "name": "fitflow-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "vp run --filter './apps/*' dev",
+    "build": "vp run --filter './apps/*' build",
+    "typecheck": "vp run -r typecheck",
+    "db:generate": "vp run @fitflow/db#generate",
+    "db:migrate": "vp run @fitflow/db#migrate",
+    "db:push": "vp run @fitflow/db#push",
+    "db:seed": "vp run @fitflow/api#seed",
+    "check": "vp check",
+    "lint": "vp lint",
+    "format": "vp fmt",
+    "verify:structure": "node scripts/verify.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "typescript": "^5.9.2",
+    "vite-plus": "0.2.6"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "npm@10.9.2"
+}

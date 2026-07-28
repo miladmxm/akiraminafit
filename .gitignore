@@ -1,0 +1,13 @@
+node_modules
+.vite
+.vite-plus
+dist
+coverage
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+apps/web/public/sw.js
+apps/web/public/workbox-*.js
+apps/web/dev-dist
