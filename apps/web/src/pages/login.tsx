@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2, Dumbbell, Loader2, ShieldCheck, Smartphone } f
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '@/components/logo';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -47,18 +48,19 @@ export function LoginPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden px-4 py-8 sm:px-6 lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:gap-8 lg:p-8">
-      <section className="relative hidden overflow-hidden rounded-[2rem] bg-slate-950 p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute -start-32 -top-32 size-96 rounded-full bg-teal-500/25 blur-3xl" />
-        <div className="absolute -bottom-32 -end-32 size-96 rounded-full bg-cyan-500/20 blur-3xl" />
-        <Logo className="relative [&>div:first-child]:bg-white [&>div:first-child]:text-teal-800 [&>div:last-child>div:last-child]:text-slate-400" />
+      <ThemeToggle className="absolute end-4 top-4 lg:end-12 lg:top-12" />
+      <section className="relative hidden overflow-hidden rounded-[2rem] bg-brand p-10 text-brand-foreground lg:flex lg:flex-col lg:justify-between">
+        <div className="absolute -start-32 -top-32 size-96 rounded-full bg-primary/25 blur-3xl" />
+        <div className="absolute -bottom-32 -end-32 size-96 rounded-full bg-primary/15 blur-3xl" />
+        <Logo className="relative" />
         <div className="relative max-w-xl">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-teal-200">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-foreground/15 bg-brand-foreground/5 px-3 py-1.5 text-xs font-semibold text-primary">
             <Dumbbell className="size-4" /> تجربه تمرینی یکپارچه
           </div>
           <h1 className="text-4xl font-black leading-[1.4] tracking-tight xl:text-5xl">
             برنامه‌ریزی دقیق برای مربی؛ اجرای ساده برای شاگرد.
           </h1>
-          <p className="mt-6 max-w-lg text-base leading-8 text-slate-300">
+          <p className="mt-6 max-w-lg text-base leading-8 text-brand-foreground/70">
             حرکات، برنامه‌ها، گزارش جسمانی و تمرین روزانه در یک اپلیکیشن سریع، راست‌چین و قابل نصب روی
             موبایل.
           </p>
@@ -69,9 +71,12 @@ export function LoginPage() {
             { icon: Smartphone, label: 'PWA و آفلاین' },
             { icon: CheckCircle2, label: 'پیگیری تمرین' },
           ].map(({ icon: Icon, label }) => (
-            <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <Icon className="mb-3 size-5 text-teal-300" />
-              <div className="text-xs font-semibold text-slate-200">{label}</div>
+            <div
+              key={label}
+              className="rounded-2xl border border-brand-foreground/10 bg-brand-foreground/5 p-4"
+            >
+              <Icon className="mb-3 size-5 text-primary" />
+              <div className="text-xs font-semibold text-brand-foreground/85">{label}</div>
             </div>
           ))}
         </div>
@@ -80,9 +85,9 @@ export function LoginPage() {
       <section className="mx-auto flex w-full max-w-md items-center justify-center lg:max-w-lg">
         <div className="w-full">
           <Logo className="mb-8 lg:hidden" />
-          <Card className="border-white/70 bg-white/90 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
+          <Card className="bg-card/90 shadow-xl backdrop-blur-xl">
             <CardHeader className="p-6 sm:p-8 sm:pb-5">
-              <CardTitle className="text-2xl font-black">ورود به فیت‌فلو</CardTitle>
+              <CardTitle className="text-2xl font-black">ورود به AkiraminaFit</CardTitle>
               <CardDescription>برای مدیریت یا اجرای برنامه تمرینی وارد حساب شوید.</CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-0 sm:p-8 sm:pt-0">
@@ -113,7 +118,7 @@ export function LoginPage() {
                     <FieldError>{errors.password?.message}</FieldError>
                   </Field>
                   {errors.root?.message && (
-                    <FieldError className="rounded-xl bg-red-50 px-3 py-2 text-red-700">
+                    <FieldError className="rounded-xl bg-destructive/10 px-3 py-2 text-destructive">
                       {errors.root.message}
                     </FieldError>
                   )}

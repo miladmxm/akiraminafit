@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1254 1254">
+  <defs>
+    <linearGradient id="redGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff1515"/>
+      <stop offset="0.58" stop-color="#ff0000"/>
+      <stop offset="1" stop-color="#f60000"/>
+    </linearGradient>
+    <linearGradient id="grayGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d8d8d8"/>
+      <stop offset="0.55" stop-color="#bcbcbc"/>
+      <stop offset="1" stop-color="#a8a8a8"/>
+    </linearGradient>
+  </defs>
+  <g id="logo" shape-rendering="geometricPrecision">
+    <g id="black-structure" fill="#000000">
+      <path d="M 678,574 L 678,676 L 790,768 L 681,854 L 681,961 L 805,1057 L 1154,777 L 1154,710 L 991,574 Z"/><path d="M 406,173 L 55,448 L 55,514 L 226,652 L 529,652 L 530,549 L 420,457 L 527,372 L 527,267 Z"/><path d="M 260,689 L 167,810 L 441,1164 L 509,1166 L 641,1000 L 641,689 L 545,689 L 451,801 L 361,689 Z"/><path d="M 702,63 L 565,227 L 565,536 L 667,536 L 758,423 L 848,535 L 948,536 L 1042,413 L 766,67 Z"/>
+    </g>
+    <g id="red-faces" fill="url(#redGrad)">
+      <path d="M 273,717 L 200,810 L 447,1128 L 546,1002 L 546,728 L 411,888 Z"/><path d="M 760,98 L 665,222 L 665,495 L 797,335 L 937,507 L 1011,414 Z"/><path d="M 1114,769 L 991,674 L 720,675 L 880,809 L 710,949 L 804,1021 Z"/><path d="M 500,278 L 408,206 L 96,454 L 218,550 L 490,550 L 330,417 Z"/>
+    </g>
+    <g id="gray-faces" fill="url(#grayGrad)">
+      <path d="M 701,590 L 702,651 L 974,650 L 973,590 Z"/><path d="M 235,574 L 235,635 L 506,635 L 506,574 Z"/><path d="M 581,240 L 581,514 L 640,514 L 640,240 Z"/><path d="M 570,711 L 570,986 L 625,986 L 626,712 Z"/><path d="M 843,807 L 809,780 L 702,867 L 702,922 Z"/><path d="M 797,373 L 771,407 L 858,514 L 912,515 Z"/><path d="M 297,709 L 412,851 L 438,818 L 349,709 Z"/><path d="M 507,305 L 368,418 L 401,444 L 507,358 Z"/><path d="M 1001,607 L 1001,653 L 1139,761 L 1139,720 Z"/><path d="M 70,462 L 70,504 L 207,615 L 207,568 Z"/><path d="M 609,1014 L 565,1014 L 459,1152 L 499,1152 Z"/><path d="M 746,78 L 712,78 L 599,213 L 642,213 Z"/>
+    </g>
+  </g>
+</svg>

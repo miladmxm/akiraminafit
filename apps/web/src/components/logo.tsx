@@ -1,15 +1,16 @@
-import { Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Logo({ compact = false, className }: { compact?: boolean; className?: string }) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
-      <div className="grid size-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-teal-600 to-cyan-700 text-white shadow-lg shadow-teal-900/15">
-        <Dumbbell className="size-6" />
+      <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-2xl border bg-logo-surface p-1 shadow-sm">
+        <img src="/logo.svg" alt="لوگوی AkiraminaFit" className="size-full object-contain" />
       </div>
       {!compact && (
-        <div>
-          <div className="text-lg font-black tracking-tight">فیت‌فلو</div>
+        <div className="min-w-0">
+          <div className="truncate text-lg font-black tracking-tight" dir="ltr">
+            AkiraminaFit
+          </div>
           <div className="text-[11px] font-medium text-muted-foreground">مدیریت هوشمند تمرین</div>
         </div>
       )}

@@ -9,7 +9,7 @@ export function Progress({
 }: React.ComponentProps<typeof ProgressPrimitive.Root>) {
   return (
     <ProgressPrimitive.Root
-      className={cn('relative h-2.5 w-full overflow-hidden rounded-full bg-slate-200', className)}
+      className={cn('relative h-2.5 w-full overflow-hidden rounded-full bg-secondary', className)}
       {...props}
     >
       <ProgressPrimitive.Indicator

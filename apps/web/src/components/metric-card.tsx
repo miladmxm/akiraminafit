@@ -26,7 +26,7 @@ export function MetricCard({
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
             <p className="mt-2 text-2xl font-black tracking-tight">{value}</p>
           </div>
-          <div className="grid size-11 place-items-center rounded-2xl bg-teal-50 text-teal-700">
+          <div className="grid size-11 place-items-center rounded-2xl bg-primary/10 text-primary">
             <Icon className="size-5" />
           </div>
         </div>
@@ -36,7 +36,7 @@ export function MetricCard({
               <span
                 className={cn(
                   'inline-flex items-center gap-1 font-bold',
-                  trend.positive ? 'text-emerald-700' : 'text-rose-700',
+                  trend.positive ? 'text-success' : 'text-destructive',
                 )}
               >
                 {trend.positive ? (

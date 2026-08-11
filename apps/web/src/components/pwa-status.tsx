@@ -35,7 +35,7 @@ export function PwaStatus() {
 
   if (!online) {
     return (
-      <div className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-xl lg:bottom-5">
+      <div className="fixed bottom-20 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background shadow-xl lg:bottom-5">
         <WifiOff className="size-4" /> حالت آفلاین
       </div>
     );
@@ -43,7 +43,7 @@ export function PwaStatus() {
 
   if (needRefresh) {
     return (
-      <div className="fixed bottom-20 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-2xl border bg-white p-3 shadow-2xl lg:bottom-5">
+      <div className="fixed bottom-20 left-1/2 z-50 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-2xl border bg-card p-3 shadow-2xl lg:bottom-5">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <RefreshCcw className="size-4 text-primary" /> نسخه جدید آماده است
         </div>

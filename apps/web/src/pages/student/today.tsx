@@ -36,7 +36,7 @@ import { apiFetch, apiUrl, isDemoMode } from '@/lib/api';
 import { todayWorkout, type DemoWorkoutItem } from '@/lib/demo-data';
 import { workoutNoteSchema, type WorkoutNoteFormValues } from '@/lib/form-schemas';
 import { enqueueMutation } from '@/lib/offline-queue';
-import { formatFaDate, formatFaNumber, percent } from '@/lib/utils';
+import { cn, formatFaDate, formatFaNumber, percent } from '@/lib/utils';
 
 const STORAGE_KEY = 'fitflow-today-completed';
 
@@ -219,7 +219,7 @@ export function StudentTodayPage() {
         <Card>
           <CardContent className="grid min-h-72 place-items-center p-8 text-center">
             <div>
-              <Dumbbell className="mx-auto size-12 text-slate-300" />
+              <Dumbbell className="mx-auto size-12 text-muted-foreground" />
               <h2 className="mt-4 text-xl font-black">امروز تمرینی نداری</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 {todayQuery.data?.message ?? 'برنامه فعالی برای امروز پیدا نشد.'}
@@ -252,38 +252,38 @@ export function StudentTodayPage() {
       />
 
       {syncStatus && (
-        <div className="mb-5 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-800">
+        <div className="mb-5 rounded-xl border border-success/25 bg-success/10 px-4 py-3 text-sm font-bold text-success">
           {syncStatus}
         </div>
       )}
 
-      <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-l from-teal-800 to-cyan-900 text-white shadow-xl shadow-teal-900/10">
+      <Card className="mb-6 overflow-hidden border-primary/20 bg-brand text-brand-foreground shadow-xl">
         <CardContent className="p-6 sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <Badge className="bg-white/15 text-white">برنامه فعال</Badge>
+              <Badge>برنامه فعال</Badge>
               <h2 className="mt-4 text-2xl font-black">{planTitle}</h2>
-              <p className="mt-2 text-sm leading-7 text-teal-100">{planDescription}</p>
+              <p className="mt-2 text-sm leading-7 text-brand-foreground/70">{planDescription}</p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-2xl bg-white/10 p-3">
-                <Dumbbell className="mx-auto size-5 text-teal-200" />
+              <div className="rounded-2xl bg-brand-foreground/10 p-3">
+                <Dumbbell className="mx-auto size-5 text-primary" />
                 <div className="mt-2 text-lg font-black">{formatFaNumber(workoutItems.length)}</div>
-                <div className="text-[10px] text-teal-100">حرکت</div>
+                <div className="text-[10px] text-brand-foreground/70">حرکت</div>
               </div>
-              <div className="rounded-2xl bg-white/10 p-3">
-                <Clock3 className="mx-auto size-5 text-teal-200" />
+              <div className="rounded-2xl bg-brand-foreground/10 p-3">
+                <Clock3 className="mx-auto size-5 text-primary" />
                 <div className="mt-2 text-lg font-black">
                   {formatFaNumber(Math.max(20, workoutItems.length * 12))}
                 </div>
-                <div className="text-[10px] text-teal-100">دقیقه</div>
+                <div className="text-[10px] text-brand-foreground/70">دقیقه</div>
               </div>
-              <div className="rounded-2xl bg-white/10 p-3">
-                <Flame className="mx-auto size-5 text-teal-200" />
+              <div className="rounded-2xl bg-brand-foreground/10 p-3">
+                <Flame className="mx-auto size-5 text-primary" />
                 <div className="mt-2 text-lg font-black">
                   {formatFaNumber(workoutItems.length * 80)}
                 </div>
-                <div className="text-[10px] text-teal-100">امتیاز</div>
+                <div className="text-[10px] text-brand-foreground/70">امتیاز</div>
               </div>
             </div>
           </div>
@@ -294,21 +294,26 @@ export function StudentTodayPage() {
               </span>
               <span>{formatFaNumber(progress)}٪</span>
             </div>
-            <Progress value={progress} className="h-3 bg-white/20 [&>div]:bg-white" />
+            <Progress value={progress} className="h-3 bg-brand-foreground/20" />
           </div>
         </CardContent>
       </Card>
 
-      <section className="space-y-4">
+      <section className="flex flex-col gap-4">
         {workoutItems.map((item, index) => {
           const done = completed.includes(item.id);
           return (
-            <Card key={item.id} className={done ? 'border-emerald-200 bg-emerald-50/60' : ''}>
+            <Card key={item.id} className={cn(done && 'border-success/30 bg-success/5')}>
               <CardContent className="p-4 sm:p-5">
                 <div className="flex gap-3 sm:gap-4">
                   <button
                     onClick={() => void toggle(item.id)}
-                    className={`mt-1 grid size-10 shrink-0 place-items-center rounded-xl border-2 transition ${done ? 'border-emerald-600 bg-emerald-600 text-white' : 'border-slate-300 bg-white text-slate-300 hover:border-teal-500 hover:text-teal-600'}`}
+                    className={cn(
+                      'mt-1 grid size-10 shrink-0 place-items-center rounded-xl border-2 transition',
+                      done
+                        ? 'border-success bg-success text-success-foreground'
+                        : 'border-input bg-background text-muted-foreground hover:border-primary hover:text-primary',
+                    )}
                     aria-label={done ? 'علامت‌گذاری به‌عنوان انجام‌نشده' : 'انجام دادم'}
                   >
                     {done ? <Check className="size-5" /> : <Circle className="size-5" />}
@@ -325,31 +330,31 @@ export function StudentTodayPage() {
                         </Badge>
                       )}
                     </div>
-                    <h3 className={`mt-2 text-lg font-black ${done ? 'text-emerald-900' : ''}`}>
+                    <h3 className={cn('mt-2 text-lg font-black', done && 'text-success')}>
                       {item.title}
                     </h3>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
                       {item.description}
                     </p>
                     <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <div className="rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-100">
-                        <Dumbbell className="mx-auto size-4 text-teal-700" />
+                      <div className="rounded-xl bg-background p-3 text-center shadow-sm ring-1 ring-border">
+                        <Dumbbell className="mx-auto size-4 text-primary" />
                         <div className="mt-1 text-sm font-black">
                           {formatFaNumber(item.sets)} ست
                         </div>
                       </div>
-                      <div className="rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-100">
-                        <RotateCcw className="mx-auto size-4 text-teal-700" />
+                      <div className="rounded-xl bg-background p-3 text-center shadow-sm ring-1 ring-border">
+                        <RotateCcw className="mx-auto size-4 text-primary" />
                         <div className="mt-1 text-sm font-black">{item.reps}</div>
                       </div>
-                      <div className="rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-100">
-                        <TimerReset className="mx-auto size-4 text-teal-700" />
+                      <div className="rounded-xl bg-background p-3 text-center shadow-sm ring-1 ring-border">
+                        <TimerReset className="mx-auto size-4 text-primary" />
                         <div className="mt-1 text-sm font-black">
                           {formatFaNumber(item.rest)} ثانیه
                         </div>
                       </div>
-                      <div className="rounded-xl bg-white p-3 text-center shadow-sm ring-1 ring-slate-100">
-                        <Scale className="mx-auto size-4 text-teal-700" />
+                      <div className="rounded-xl bg-background p-3 text-center shadow-sm ring-1 ring-border">
+                        <Scale className="mx-auto size-4 text-primary" />
                         <div className="mt-1 text-sm font-black">
                           {item.weight ? `${formatFaNumber(item.weight)} کیلو` : 'وزن بدن'}
                         </div>
@@ -357,7 +362,7 @@ export function StudentTodayPage() {
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Button variant="outline" size="sm" onClick={() => setActiveId(item.id)}>
-                        <Play className="size-4" /> آموزش حرکت
+                        <Play data-icon="inline-start" /> آموزش حرکت
                       </Button>
                       <Button
                         variant={done ? 'secondary' : 'default'}
@@ -399,13 +404,13 @@ export function StudentTodayPage() {
       </Card>
 
       {progress === 100 && workoutItems.length > 0 && (
-        <Card className="mt-6 border-amber-200 bg-amber-50">
+        <Card className="mt-6 border-warning/30 bg-warning/10">
           <CardContent className="flex flex-col items-center p-7 text-center">
-            <div className="grid size-16 place-items-center rounded-full bg-amber-200 text-amber-800">
+            <div className="grid size-16 place-items-center rounded-full bg-warning/20 text-warning">
               <Trophy className="size-8" />
             </div>
             <h3 className="mt-4 text-xl font-black">تمرین امروز کامل شد!</h3>
-            <p className="mt-2 text-sm leading-6 text-amber-900/70">
+            <p className="mt-2 text-sm leading-6 text-warning">
               عالی بود. آب کافی بنوش و زمان ریکاوری را جدی بگیر.
             </p>
           </CardContent>
@@ -419,7 +424,7 @@ export function StudentTodayPage() {
         <DialogContent className="overflow-hidden p-0 sm:max-w-2xl">
           {activeExercise && (
             <>
-              <div className="relative aspect-video bg-slate-950">
+              <div className="relative aspect-video bg-brand">
                 {activeExercise.video ? (
                   <video src={activeExercise.video} controls className="size-full object-contain" />
                 ) : (
@@ -431,7 +436,7 @@ export function StudentTodayPage() {
                 )}
                 {!activeExercise.video && (
                   <div className="absolute inset-0 grid place-items-center">
-                    <div className="grid size-16 place-items-center rounded-full bg-white/90 text-teal-800 shadow-xl">
+                    <div className="grid size-16 place-items-center rounded-full bg-background/90 text-primary shadow-xl">
                       <Play className="ms-1 size-7" />
                     </div>
                   </div>
@@ -442,14 +447,14 @@ export function StudentTodayPage() {
                   <DialogTitle>{activeExercise.title}</DialogTitle>
                   <DialogDescription>{activeExercise.description}</DialogDescription>
                 </DialogHeader>
-                <div className="rounded-xl bg-blue-50 p-4 text-sm leading-7 text-blue-900">
+                <div className="rounded-xl bg-info/10 p-4 text-sm leading-7 text-info">
                   <Info className="me-2 inline size-4" />
                   کتف‌ها و ستون فقرات را در وضعیت پایدار نگه دار و دامنه حرکت را فدای وزن بیشتر نکن.
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded-xl bg-slate-50 p-3">{activeExercise.sets} ست</div>
-                  <div className="rounded-xl bg-slate-50 p-3">{activeExercise.reps}</div>
-                  <div className="rounded-xl bg-slate-50 p-3">{activeExercise.rest} ث استراحت</div>
+                  <div className="rounded-xl bg-muted p-3">{activeExercise.sets} ست</div>
+                  <div className="rounded-xl bg-muted p-3">{activeExercise.reps}</div>
+                  <div className="rounded-xl bg-muted p-3">{activeExercise.rest} ث استراحت</div>
                 </div>
               </div>
             </>

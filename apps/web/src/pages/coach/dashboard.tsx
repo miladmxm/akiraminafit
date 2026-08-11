@@ -19,7 +19,7 @@ export function CoachDashboardPage() {
         action={
           <Button asChild>
             <Link to="/coach/plans/new">
-              <Plus className="size-4" /> برنامه جدید
+              <Plus data-icon="inline-start" /> برنامه جدید
             </Link>
           </Button>
         }
@@ -67,16 +67,16 @@ export function CoachDashboardPage() {
               <Link to="/coach/students">مشاهده همه</Link>
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-4">
             {demoStudents.slice(1).map((student) => (
               <div key={student.id} className="flex items-center gap-3 rounded-xl border p-3">
-                <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-slate-900 text-xs font-black text-white">
+                <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-foreground text-xs font-black text-background">
                   {student.avatar}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-sm font-bold">{student.name}</p>
-                    <span className="text-xs font-black text-slate-700">
+                    <span className="text-xs font-black text-foreground">
                       {formatFaNumber(student.adherence)}٪
                     </span>
                   </div>
@@ -97,7 +97,7 @@ export function CoachDashboardPage() {
             <CardTitle>فعالیت‌های اخیر</CardTitle>
             <CardDescription>آخرین رویدادهای مهم شاگردها</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-1">
+          <CardContent className="flex flex-col gap-1">
             {[
               ['نیما احمدی تمرین امروز را تکمیل کرد.', '۸ دقیقه قبل', 'success'],
               ['گزارش جسمانی سارا محمدی ثبت شد.', '۳۵ دقیقه قبل', 'default'],
@@ -105,7 +105,7 @@ export function CoachDashboardPage() {
               ['هستی مرادی وزن واقعی اسکوات را به ۲۴ کیلو رساند.', 'دیروز', 'secondary'],
             ].map(([text, time, variant]) => (
               <div key={text} className="flex items-start gap-3 border-b py-3 last:border-0">
-                <div className="mt-1 size-2 rounded-full bg-teal-600" />
+                <div className="mt-1 size-2 rounded-full bg-primary" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold leading-6">{text}</p>
                   <p className="text-xs text-muted-foreground">{time}</p>
@@ -115,18 +115,18 @@ export function CoachDashboardPage() {
             ))}
           </CardContent>
         </Card>
-        <Card className="overflow-hidden bg-gradient-to-br from-teal-800 to-cyan-900 text-white">
+        <Card className="overflow-hidden border-primary/20 bg-brand text-brand-foreground">
           <CardContent className="flex h-full min-h-72 flex-col justify-between p-7">
             <div>
-              <Badge className="bg-white/15 text-white">پیشنهاد امروز</Badge>
+              <Badge>پیشنهاد امروز</Badge>
               <h2 className="mt-5 max-w-md text-2xl font-black leading-10">
                 برنامه شاگردانی که بیش از ۸ هفته بدون تغییر مانده را بازبینی کن.
               </h2>
-              <p className="mt-3 max-w-md text-sm leading-7 text-teal-100">
+              <p className="mt-3 max-w-md text-sm leading-7 text-brand-foreground/70">
                 چهار برنامه فعال در بازه پیشنهادی بازبینی قرار دارند.
               </p>
             </div>
-            <Button className="mt-6 w-fit bg-white text-teal-900 hover:bg-teal-50" asChild>
+            <Button className="mt-6 w-fit" variant="secondary" asChild>
               <Link to="/coach/plans/new">رفتن به برنامه‌ساز</Link>
             </Button>
           </CardContent>

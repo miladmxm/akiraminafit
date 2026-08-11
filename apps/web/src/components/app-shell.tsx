@@ -18,6 +18,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { PwaStatus } from '@/components/pwa-status';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
 import { setStoredRole } from '@/lib/session-store';
@@ -54,7 +55,7 @@ export function AppShell({ role }: { role: UserRole }) {
 
   return (
     <div className="min-h-screen">
-      <aside className="fixed inset-y-0 start-0 z-40 hidden w-72 border-e bg-white/90 p-5 backdrop-blur-xl lg:flex lg:flex-col">
+      <aside className="fixed inset-y-0 start-0 z-40 hidden w-72 border-e bg-card/90 p-5 backdrop-blur-xl lg:flex lg:flex-col">
         <Logo />
         <nav className="mt-9 flex flex-1 flex-col gap-1.5">
           {nav.map((item) => (
@@ -64,8 +65,8 @@ export function AppShell({ role }: { role: UserRole }) {
               end={item.end}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950',
-                  isActive && 'bg-teal-50 text-teal-800 hover:bg-teal-50 hover:text-teal-800',
+                  'flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
+                  isActive && 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary',
                 )
               }
             >
@@ -75,17 +76,18 @@ export function AppShell({ role }: { role: UserRole }) {
             </NavLink>
           ))}
         </nav>
-        <div className="rounded-2xl bg-slate-50 p-3">
+        <div className="rounded-2xl bg-muted p-3">
           <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center rounded-xl bg-slate-900 text-xs font-black text-white">
+            <div className="grid size-10 place-items-center rounded-xl bg-foreground text-xs font-black text-background">
               {user.initials}
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-bold">{user.name}</div>
               <div className="text-xs text-muted-foreground">{user.role}</div>
             </div>
+            <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={logout} aria-label="خروج">
-              <LogOut className="size-4" />
+              <LogOut />
             </Button>
           </div>
         </div>
@@ -94,12 +96,18 @@ export function AppShell({ role }: { role: UserRole }) {
       <header className="glass sticky top-0 z-30 flex h-16 items-center justify-between border-b px-4 lg:hidden">
         <Logo compact />
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <div className="text-end">
             <div className="text-xs font-bold">{user.name}</div>
             <div className="text-[10px] text-muted-foreground">{user.role}</div>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setMobileMenu(true)}>
-            <Menu className="size-5" />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileMenu(true)}
+            aria-label="بازکردن منو"
+          >
+            <Menu />
           </Button>
         </div>
       </header>
@@ -107,16 +115,24 @@ export function AppShell({ role }: { role: UserRole }) {
       {mobileMenu && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
-            className="absolute inset-0 bg-slate-950/40"
+            className="absolute inset-0 bg-[var(--overlay)]"
             onClick={() => setMobileMenu(false)}
             aria-label="بستن منو"
           />
-          <aside className="absolute inset-y-0 start-0 w-[82%] max-w-sm bg-white p-5 shadow-2xl">
+          <aside className="absolute inset-y-0 start-0 w-[82%] max-w-sm bg-card p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <Logo />
-              <Button variant="ghost" size="icon" onClick={() => setMobileMenu(false)}>
-                <X className="size-5" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <ThemeToggle />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setMobileMenu(false)}
+                  aria-label="بستن منو"
+                >
+                  <X />
+                </Button>
+              </div>
             </div>
             <nav className="mt-8 flex flex-col gap-2">
               {nav.map((item) => (
@@ -128,7 +144,7 @@ export function AppShell({ role }: { role: UserRole }) {
                   className={({ isActive }) =>
                     cn(
                       'flex items-center gap-3 rounded-xl px-4 py-3 font-semibold',
-                      isActive ? 'bg-teal-50 text-teal-800' : 'text-slate-600',
+                      isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground',
                     )
                   }
                 >
@@ -137,7 +153,7 @@ export function AppShell({ role }: { role: UserRole }) {
               ))}
             </nav>
             <Button className="absolute bottom-6 inset-x-5" variant="outline" onClick={logout}>
-              <LogOut className="size-4" /> خروج از حساب
+              <LogOut data-icon="inline-start" /> خروج از حساب
             </Button>
           </aside>
         </div>
@@ -163,8 +179,8 @@ export function AppShell({ role }: { role: UserRole }) {
             end={item.end}
             className={({ isActive }) =>
               cn(
-                'flex flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-bold text-slate-500',
-                isActive && 'bg-teal-50 text-teal-800',
+                'flex flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-bold text-muted-foreground',
+                isActive && 'bg-primary/10 text-primary',
               )
             }
           >

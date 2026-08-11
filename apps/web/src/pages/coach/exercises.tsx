@@ -349,7 +349,7 @@ export function CoachExercisesPage() {
       )}
 
       {exercisesQuery.isError && (
-        <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <div className="mb-5 rounded-xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">
           {exercisesQuery.error.message}
         </div>
       )}
@@ -387,7 +387,7 @@ export function CoachExercisesPage() {
             key={exercise.id}
             className="overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg"
           >
-            <div className="relative aspect-[16/9] overflow-hidden bg-slate-100">
+            <div className="relative aspect-[16/9] overflow-hidden bg-muted">
               <ExerciseImage
                 src={exercise.image}
                 alt={exercise.title}
@@ -409,9 +409,9 @@ export function CoachExercisesPage() {
                   href={exercise.video}
                   target="_blank"
                   rel="noreferrer"
-                  className="absolute inset-0 grid place-items-center bg-slate-950/15"
+                  className="absolute inset-0 grid place-items-center bg-[var(--overlay)]"
                 >
-                  <span className="grid size-12 place-items-center rounded-full bg-white/90 text-teal-800 shadow-xl">
+                  <span className="grid size-12 place-items-center rounded-full bg-background/90 text-primary shadow-xl">
                     <Play className="size-5 fill-current" />
                   </span>
                 </a>
@@ -425,9 +425,9 @@ export function CoachExercisesPage() {
                     {exercise.equipment} • {exercise.difficulty}
                   </p>
                 </div>
-                <Camera className="size-5 text-teal-700" />
+                <Camera className="size-5 text-primary" />
               </div>
-              <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-600">
+              <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
                 {exercise.description || 'بدون توضیح'}
               </p>
               <Button

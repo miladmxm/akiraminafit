@@ -14,18 +14,18 @@ export function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[var(--overlay)] backdrop-blur-sm" />
       <DialogPrimitive.Content
         dir="rtl"
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-2xl border bg-white p-5 shadow-2xl outline-none',
+          'fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto overscroll-contain rounded-2xl border bg-popover text-popover-foreground p-5 shadow-2xl outline-none',
           className,
         )}
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="absolute end-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-muted">
-          <X className="size-4" />
+        <DialogPrimitive.Close className="absolute end-4 top-4 rounded-lg p-1.5 text-muted-foreground hover:bg-muted [&_svg]:size-4">
+          <X />
           <span className="sr-only">بستن</span>
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>

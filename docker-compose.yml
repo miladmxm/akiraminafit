@@ -1,44 +1,91 @@
+name: ${COMPOSE_PROJECT_NAME:?COMPOSE_PROJECT_NAME is required}
+
 services:
   postgres:
-    image: postgres:17-alpine
-    restart: unless-stopped
+    image: ${POSTGRES_IMAGE:?POSTGRES_IMAGE is required}
+    restart: ${DOCKER_RESTART_POLICY:?DOCKER_RESTART_POLICY is required}
+    stop_grace_period: ${DOCKER_STOP_GRACE_PERIOD:?DOCKER_STOP_GRACE_PERIOD is required}
+    command: ['postgres', '-p', '${POSTGRES_INTERNAL_PORT:?POSTGRES_INTERNAL_PORT is required}']
     environment:
-      POSTGRES_DB: fitflow
-      POSTGRES_USER: fitflow
-      POSTGRES_PASSWORD: fitflow
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_INTERNAL_PORT: ${POSTGRES_INTERNAL_PORT:?POSTGRES_INTERNAL_PORT is required}
     ports:
-      - '5432:5432'
+      - '${POSTGRES_PORT:?POSTGRES_PORT is required}:${POSTGRES_INTERNAL_PORT:?POSTGRES_INTERNAL_PORT is required}'
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U fitflow -d fitflow']
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}" -p "$${POSTGRES_INTERNAL_PORT}"',
+        ]
+      interval: ${POSTGRES_HEALTHCHECK_INTERVAL:?POSTGRES_HEALTHCHECK_INTERVAL is required}
+      timeout: ${POSTGRES_HEALTHCHECK_TIMEOUT:?POSTGRES_HEALTHCHECK_TIMEOUT is required}
+      retries: ${POSTGRES_HEALTHCHECK_RETRIES:?POSTGRES_HEALTHCHECK_RETRIES is required}
+      start_period: ${POSTGRES_HEALTHCHECK_START_PERIOD:?POSTGRES_HEALTHCHECK_START_PERIOD is required}
 
   minio:
-    image: minio/minio:latest
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
+    image: ${MINIO_IMAGE:?MINIO_IMAGE is required}
+    restart: ${DOCKER_RESTART_POLICY:?DOCKER_RESTART_POLICY is required}
+    stop_grace_period: ${DOCKER_STOP_GRACE_PERIOD:?DOCKER_STOP_GRACE_PERIOD is required}
+    command:
+      - server
+      - /data
+      - --address
+      - ':${MINIO_INTERNAL_API_PORT:?MINIO_INTERNAL_API_PORT is required}'
+      - --console-address
+      - ':${MINIO_INTERNAL_CONSOLE_PORT:?MINIO_INTERNAL_CONSOLE_PORT is required}'
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - '${MINIO_API_PORT:?MINIO_API_PORT is required}:${MINIO_INTERNAL_API_PORT:?MINIO_INTERNAL_API_PORT is required}'
+      - '${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT is required}:${MINIO_INTERNAL_CONSOLE_PORT:?MINIO_INTERNAL_CONSOLE_PORT is required}'
     volumes:
       - minio_data:/data
+    networks:
+      - data
 
   minio-init:
-    image: minio/mc:latest
+    image: ${MINIO_MC_IMAGE:?MINIO_MC_IMAGE is required}
+    restart: 'on-failure:${MINIO_INIT_MAX_RETRIES:?MINIO_INIT_MAX_RETRIES is required}'
     depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      until /usr/bin/mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 2; done;
-      /usr/bin/mc mb --ignore-existing local/fitflow-media;
-      /usr/bin/mc anonymous set download local/fitflow-media;
-      exit 0;"
+      minio:
+        condition: service_started
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      MINIO_INTERNAL_API_PORT: ${MINIO_INTERNAL_API_PORT:?MINIO_INTERNAL_API_PORT is required}
+      MINIO_BUCKET: ${S3_BUCKET:?S3_BUCKET is required}
+      MINIO_BUCKET_ACCESS: ${MINIO_BUCKET_ACCESS:?MINIO_BUCKET_ACCESS is required}
+      MINIO_INIT_RETRY_INTERVAL: ${MINIO_INIT_RETRY_INTERVAL:?MINIO_INIT_RETRY_INTERVAL is required}
+      MINIO_INIT_MAX_RETRIES: ${MINIO_INIT_MAX_RETRIES:?MINIO_INIT_MAX_RETRIES is required}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        attempt=0
+        until /usr/bin/mc alias set local "http://minio:$${MINIO_INTERNAL_API_PORT}" "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}"; do
+          attempt=$$((attempt + 1))
+          if [ "$${attempt}" -ge "$${MINIO_INIT_MAX_RETRIES}" ]; then
+            echo "MinIO did not become ready after $${MINIO_INIT_MAX_RETRIES} attempts" >&2
+            exit 1
+          fi
+          sleep "$${MINIO_INIT_RETRY_INTERVAL}"
+        done
+        /usr/bin/mc mb --ignore-existing "local/$${MINIO_BUCKET}"
+        /usr/bin/mc anonymous set "$${MINIO_BUCKET_ACCESS}" "local/$${MINIO_BUCKET}"
+    networks:
+      - data
+
+networks:
+  data:
+    driver: bridge
 
 volumes:
   postgres_data:

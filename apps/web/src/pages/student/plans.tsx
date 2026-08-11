@@ -73,35 +73,35 @@ export function StudentPlansPage() {
         description="برنامه فعال، روزهای تمرین و تاریخچه دوره‌های قبلی."
       />
       {plansQuery.isError && (
-        <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <div className="mb-5 rounded-xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">
           {plansQuery.error.message}
         </div>
       )}
 
       {activePlan ? (
         <>
-          <Card className="overflow-hidden border-0 bg-slate-950 text-white">
+          <Card className="overflow-hidden border-primary/20 bg-brand text-brand-foreground">
             <CardContent className="p-6 sm:p-8">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <Badge className="bg-teal-400/20 text-teal-100">
+                  <Badge>
                     فعال{' '}
                     {activePlan.endDate
                       ? `تا ${formatFaDate(activePlan.endDate)}`
                       : 'تا انتشار برنامه بعدی'}
                   </Badge>
                   <h2 className="mt-4 text-2xl font-black sm:text-3xl">{activePlan.title}</h2>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-brand-foreground/70">
                     {activePlan.description}
                   </p>
                 </div>
-                <div className="w-full max-w-sm rounded-2xl bg-white/10 p-4">
+                <div className="w-full max-w-sm rounded-2xl bg-brand-foreground/10 p-4">
                   <div className="mb-2 flex justify-between text-xs font-bold">
                     <span>روزهای برنامه</span>
                     <span>{formatFaNumber(activePlan.days.length)} جلسه</span>
                   </div>
-                  <Progress value={100} className="bg-white/20 [&>div]:bg-teal-300" />
-                  <div className="mt-2 text-xs text-slate-300">
+                  <Progress value={100} className="bg-brand-foreground/20" />
+                  <div className="mt-2 text-xs text-brand-foreground/70">
                     شروع: {formatFaDate(activePlan.startDate)}
                   </div>
                 </div>
@@ -117,7 +117,7 @@ export function StudentPlansPage() {
                     <Badge variant="secondary">جلسه {formatFaNumber(item.dayNumber)}</Badge>
                     <CardTitle className="mt-3">{item.title}</CardTitle>
                   </div>
-                  {index === 0 && <CheckCircle2 className="size-6 text-emerald-600" />}
+                  {index === 0 && <CheckCircle2 className="size-6 text-success" />}
                 </CardHeader>
                 <CardContent>
                   <div className="flex gap-4 text-xs text-muted-foreground">
@@ -148,7 +148,7 @@ export function StudentPlansPage() {
         <Card>
           <CardContent className="grid min-h-72 place-items-center p-8 text-center">
             <div>
-              <Dumbbell className="mx-auto size-12 text-slate-300" />
+              <Dumbbell className="mx-auto size-12 text-muted-foreground" />
               <h2 className="mt-4 text-xl font-black">برنامه فعالی وجود ندارد</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 پس از انتشار برنامه توسط مربی، اینجا نمایش داده می‌شود.
@@ -163,7 +163,7 @@ export function StudentPlansPage() {
           <CardTitle>سایر برنامه‌ها</CardTitle>
           <CardDescription>برنامه‌های گذشته، آینده و آرشیوشده</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="flex flex-col gap-3">
           {isDemoMode ? (
             <>
               {(
@@ -176,7 +176,7 @@ export function StudentPlansPage() {
                   key={title}
                   className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center"
                 >
-                  <div className="grid size-11 place-items-center rounded-xl bg-slate-100 text-slate-700">
+                  <div className="grid size-11 place-items-center rounded-xl bg-muted text-muted-foreground">
                     <CalendarDays className="size-5" />
                   </div>
                   <div className="flex-1">
@@ -210,7 +210,7 @@ export function StudentPlansPage() {
                 key={plan.id}
                 className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center"
               >
-                <div className="grid size-11 place-items-center rounded-xl bg-slate-100 text-slate-700">
+                <div className="grid size-11 place-items-center rounded-xl bg-muted text-muted-foreground">
                   <CalendarDays className="size-5" />
                 </div>
                 <div className="flex-1">

@@ -387,7 +387,7 @@ export function CoachPlanBuilderPage() {
         onSubmit={handleSubmit((form) => savePlan(form, true), handleInvalidPlan)}
       >
         {status && (
-          <div className="mb-5 flex items-center gap-2 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-800">
+          <div className="mb-5 flex items-center gap-2 rounded-2xl border border-success/25 bg-success/10 px-4 py-3 text-sm font-bold text-success">
             <Check className="size-5" /> {status}
           </div>
         )}
@@ -492,7 +492,7 @@ export function CoachPlanBuilderPage() {
                         : 'bg-card hover:bg-muted',
                     )}
                   >
-                    <div className="grid size-9 place-items-center rounded-xl bg-slate-900 text-xs font-black text-white">
+                    <div className="grid size-9 place-items-center rounded-xl bg-foreground text-xs font-black text-background">
                       {index + 1}
                     </div>
                     <div className="min-w-0 flex-1">

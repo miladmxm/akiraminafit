@@ -3,11 +3,22 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0f766e" />
-    <meta name="description" content="سامانه مدیریت مربی و برنامه تمرینی شاگرد" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#ff0707" />
+    <meta name="description" content="AkiraminaFit؛ سامانه مدیریت مربی و برنامه تمرینی شاگرد" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <title>فیت‌فلو</title>
+    <title>AkiraminaFit</title>
+    <script>
+      try {
+        if (localStorage.getItem('akiraminafit-theme') !== 'light') {
+          document.documentElement.classList.add('dark');
+          document.documentElement.style.colorScheme = 'dark';
+        }
+      } catch {
+        document.documentElement.classList.add('dark');
+        document.documentElement.style.colorScheme = 'dark';
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

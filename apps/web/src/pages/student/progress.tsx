@@ -61,7 +61,7 @@ export function StudentProgressPage() {
         description="گزارش‌هایی که مربی ثبت کرده و عملکرد تمرینی خودت را اینجا می‌بینی."
       />
       {reportsQuery.isError && (
-        <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+        <div className="mb-5 rounded-xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">
           {reportsQuery.error.message}
         </div>
       )}
@@ -188,7 +188,7 @@ export function StudentProgressPage() {
               ] as const
             ).map(([title, value]) => (
               <div key={title} className="flex items-center gap-3 rounded-xl border p-3">
-                <div className="grid size-10 place-items-center rounded-xl bg-teal-50 text-teal-700">
+                <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
                   <Activity className="size-5" />
                 </div>
                 <div className="flex-1">

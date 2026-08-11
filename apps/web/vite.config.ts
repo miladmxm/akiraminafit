@@ -10,15 +10,15 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['logo.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'فیت‌فلو | مدیریت تمرین',
-        short_name: 'فیت‌فلو',
+        name: 'AkiraminaFit | مدیریت تمرین',
+        short_name: 'AkiraminaFit',
         description: 'مدیریت برنامه تمرینی، گزارش جسمانی و پیگیری تمرین روزانه',
         lang: 'fa',
         dir: 'rtl',
-        theme_color: '#0f766e',
-        background_color: '#f8fafc',
+        theme_color: '#ff0707',
+        background_color: '#09090b',
         display: 'standalone',
         orientation: 'portrait-primary',
         start_url: '/',
@@ -42,7 +42,7 @@ export default defineConfig({
               url.pathname.startsWith('/api/') && !url.pathname.startsWith('/api/auth/'),
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'fitflow-api',
+              cacheName: 'akiraminafit-api',
               networkTimeoutSeconds: 5,
               expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
@@ -52,7 +52,7 @@ export default defineConfig({
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
             options: {
-              cacheName: 'fitflow-images',
+              cacheName: 'akiraminafit-images',
               expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
               cacheableResponse: { statuses: [0, 200] },
             },

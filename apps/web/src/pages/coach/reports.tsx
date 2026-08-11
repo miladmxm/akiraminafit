@@ -150,7 +150,7 @@ export function CoachReportsPage() {
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `fitflow-report-${studentId || 'student'}.csv`;
+    anchor.download = `akiraminafit-report-${studentId || 'student'}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -311,13 +311,13 @@ export function CoachReportsPage() {
       />
 
       {status && (
-        <div className="mb-5 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-bold text-teal-800">
+        <div className="mb-5 rounded-xl border border-success/25 bg-success/10 px-4 py-3 text-sm font-bold text-success">
           {status}
         </div>
       )}
       <div className="mb-6 flex flex-wrap gap-2">
         <select
-          className="h-9 rounded-xl border bg-white px-3 text-sm font-bold"
+          className="h-9 rounded-xl border bg-background px-3 text-sm font-bold"
           value={studentId}
           onChange={(event) => setStudentId(event.target.value)}
         >
@@ -379,7 +379,7 @@ export function CoachReportsPage() {
                   : 'گزارشی ثبت نشده'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="flex flex-col gap-3">
             {(isDemoMode
               ? ([
                   ['وزن', '۷۹٫۲ کیلوگرم'],
@@ -407,7 +407,7 @@ export function CoachReportsPage() {
             ).map(([label, value]) => (
               <div
                 key={label}
-                className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3"
+                className="flex items-center justify-between rounded-xl bg-muted px-4 py-3"
               >
                 <div>
                   <div className="text-xs text-muted-foreground">{label}</div>
@@ -447,7 +447,7 @@ export function CoachReportsPage() {
                   </td>
                   <td>
                     <Button size="sm" variant="ghost" onClick={() => setStudentId(student.id)}>
-                      <UserRound className="size-4" /> انتخاب
+                      <UserRound data-icon="inline-start" /> انتخاب
                     </Button>
                   </td>
                 </tr>

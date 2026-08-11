@@ -6,7 +6,7 @@ export function NotFoundPage() {
   return (
     <main className="grid min-h-screen place-items-center px-4 text-center">
       <div>
-        <div className="text-8xl font-black text-teal-700">۴۰۴</div>
+        <div className="text-8xl font-black text-primary">۴۰۴</div>
         <h1 className="mt-4 text-2xl font-black">این صفحه پیدا نشد</h1>
         <p className="mt-2 text-muted-foreground">
           آدرس واردشده معتبر نیست یا صفحه جابه‌جا شده است.

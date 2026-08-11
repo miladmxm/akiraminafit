@@ -28,13 +28,26 @@ export function ProgressChart({
         <div className="h-72 w-full" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 10, right: 12, left: -18, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="4 4" vertical={false} />
-              <XAxis dataKey="date" tickLine={false} axisLine={false} fontSize={12} />
-              <YAxis tickLine={false} axisLine={false} fontSize={12} />
+              <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                fontSize={12}
+                tick={{ fill: 'var(--muted-foreground)' }}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                fontSize={12}
+                tick={{ fill: 'var(--muted-foreground)' }}
+              />
               <Tooltip
                 contentStyle={{
                   borderRadius: 16,
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid var(--border)',
+                  background: 'var(--popover)',
+                  color: 'var(--popover-foreground)',
                   direction: 'rtl',
                   textAlign: 'right',
                 }}
@@ -43,7 +56,7 @@ export function ProgressChart({
                 type="monotone"
                 dataKey="weight"
                 name="وزن"
-                stroke="#0f766e"
+                stroke="var(--chart-1)"
                 strokeWidth={3}
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}
@@ -52,7 +65,7 @@ export function ProgressChart({
                 type="monotone"
                 dataKey="fat"
                 name="درصد چربی"
-                stroke="#f59e0b"
+                stroke="var(--chart-2)"
                 strokeWidth={2.5}
                 dot={{ r: 3 }}
               />
