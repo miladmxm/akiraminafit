@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { valibotResolver } from '@hookform/resolvers/valibot';
 import { Camera, Filter, MoreVertical, Play, Plus, Upload } from 'lucide-react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { ExerciseImage } from '@/components/exercise-image';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +31,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch, isDemoMode } from '@/lib/api';
 import { demoExercises, type DemoExercise } from '@/lib/demo-data';
+import { exerciseSchema, type ExerciseFormValues } from '@/lib/form-schemas';
 
 const groups = ['همه', 'سینه', 'پا', 'پشت', 'مرکزی', 'همسترینگ', 'سرشانه'];
 const difficultyLabel = { beginner: 'مبتدی', intermediate: 'متوسط', advanced: 'پیشرفته' } as const;
@@ -65,19 +68,29 @@ export function CoachExercisesPage() {
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState('همه');
   const [demoItems, setDemoItems] = useState(demoExercises);
-  const [file, setFile] = useState<File | null>(null);
   const [notice, setNotice] = useState('');
-  const [formError, setFormError] = useState('');
-  const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<DemoExercise | null>(null);
-  const [newExercise, setNewExercise] = useState({
-    title: '',
-    muscleGroup: '',
-    equipment: '',
-    description: '',
-    instructions: '',
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<ExerciseFormValues>({
+    resolver: valibotResolver(exerciseSchema),
+    defaultValues: {
+      title: '',
+      muscleGroup: '',
+      equipment: '',
+      description: '',
+      instructions: '',
+      file: null,
+    },
   });
+  const file = watch('file');
 
   const exercisesQuery = useQuery({
     queryKey: ['coach', 'exercises'],
@@ -99,24 +112,17 @@ export function CoachExercisesPage() {
   );
 
   const resetForm = () => {
-    setNewExercise({
+    reset({
       title: '',
       muscleGroup: '',
       equipment: '',
       description: '',
       instructions: '',
+      file: null,
     });
-    setFile(null);
   };
 
-  const addExercise = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!newExercise.title.trim() || !newExercise.muscleGroup.trim()) {
-      setFormError('عنوان و گروه عضلانی الزامی است.');
-      return;
-    }
-    setSaving(true);
-    setFormError('');
+  const addExercise = async ({ file, ...newExercise }: ExerciseFormValues) => {
     try {
       if (isDemoMode) {
         const item: DemoExercise = {
@@ -183,9 +189,10 @@ export function CoachExercisesPage() {
       setCreateOpen(false);
       setNotice('حرکت با موفقیت به کتابخانه اضافه شد.');
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : 'ذخیره حرکت ناموفق بود.');
-    } finally {
-      setSaving(false);
+      setError('root', {
+        type: 'server',
+        message: error instanceof Error ? error.message : 'ذخیره حرکت ناموفق بود.',
+      });
     }
   };
 
@@ -199,7 +206,7 @@ export function CoachExercisesPage() {
             open={createOpen}
             onOpenChange={(open) => {
               setCreateOpen(open);
-              setFormError('');
+              if (!open) resetForm();
             }}
           >
             <DialogTrigger asChild>
@@ -214,71 +221,61 @@ export function CoachExercisesPage() {
                   عنوان، توضیحات اجرای صحیح و فایل آموزشی حرکت را ثبت کن.
                 </DialogDescription>
               </DialogHeader>
-              <form className="contents" onSubmit={(event) => void addExercise(event)}>
+              <form className="contents" noValidate onSubmit={handleSubmit(addExercise)}>
                 <div className="min-h-0 flex-1 overflow-y-auto p-5">
                   <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                    <Field
-                      className="sm:col-span-2"
-                      data-invalid={Boolean(formError && !newExercise.title.trim())}
-                    >
+                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.title)}>
                       <FieldLabel htmlFor="new-exercise-title">عنوان حرکت</FieldLabel>
                       <Input
                         id="new-exercise-title"
-                        value={newExercise.title}
-                        onChange={(event) =>
-                          setNewExercise({ ...newExercise, title: event.target.value })
-                        }
                         placeholder="مثلاً پرس سینه دمبل"
-                        aria-invalid={Boolean(formError && !newExercise.title.trim())}
+                        aria-invalid={Boolean(errors.title)}
                         autoFocus
+                        {...register('title')}
                       />
+                      <FieldError>{errors.title?.message}</FieldError>
                     </Field>
-                    <Field data-invalid={Boolean(formError && !newExercise.muscleGroup.trim())}>
+                    <Field data-invalid={Boolean(errors.muscleGroup)}>
                       <FieldLabel htmlFor="new-exercise-muscle">گروه عضلانی</FieldLabel>
                       <Input
                         id="new-exercise-muscle"
-                        value={newExercise.muscleGroup}
-                        onChange={(event) =>
-                          setNewExercise({ ...newExercise, muscleGroup: event.target.value })
-                        }
                         placeholder="سینه"
-                        aria-invalid={Boolean(formError && !newExercise.muscleGroup.trim())}
+                        aria-invalid={Boolean(errors.muscleGroup)}
+                        {...register('muscleGroup')}
                       />
+                      <FieldError>{errors.muscleGroup?.message}</FieldError>
                     </Field>
-                    <Field>
+                    <Field data-invalid={Boolean(errors.equipment)}>
                       <FieldLabel htmlFor="new-exercise-equipment">تجهیزات</FieldLabel>
                       <Input
                         id="new-exercise-equipment"
-                        value={newExercise.equipment}
-                        onChange={(event) =>
-                          setNewExercise({ ...newExercise, equipment: event.target.value })
-                        }
                         placeholder="دمبل و نیمکت"
+                        aria-invalid={Boolean(errors.equipment)}
+                        {...register('equipment')}
                       />
+                      <FieldError>{errors.equipment?.message}</FieldError>
                     </Field>
-                    <Field className="sm:col-span-2">
+                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.description)}>
                       <FieldLabel htmlFor="new-exercise-description">توضیح کوتاه</FieldLabel>
                       <Textarea
                         id="new-exercise-description"
-                        value={newExercise.description}
-                        onChange={(event) =>
-                          setNewExercise({ ...newExercise, description: event.target.value })
-                        }
                         placeholder="هدف حرکت و عضلات درگیر را کوتاه بنویس."
+                        aria-invalid={Boolean(errors.description)}
+                        {...register('description')}
                       />
+                      <FieldError>{errors.description?.message}</FieldError>
                     </Field>
-                    <Field className="sm:col-span-2">
+                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.instructions)}>
                       <FieldLabel htmlFor="new-exercise-instructions">نحوه اجرای صحیح</FieldLabel>
                       <Textarea
                         id="new-exercise-instructions"
-                        value={newExercise.instructions}
-                        onChange={(event) =>
-                          setNewExercise({ ...newExercise, instructions: event.target.value })
-                        }
                         placeholder="مراحل اجرا و نکات ایمنی حرکت را بنویس."
+                        aria-invalid={Boolean(errors.instructions)}
+                        {...register('instructions')}
                       />
+                      <FieldError>{errors.instructions?.message}</FieldError>
                     </Field>
-                    <Field className="sm:col-span-2">
+                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.file)}>
                       <FieldLabel htmlFor="new-exercise-file">فایل آموزشی (اختیاری)</FieldLabel>
                       <label
                         htmlFor="new-exercise-file"
@@ -294,37 +291,46 @@ export function CoachExercisesPage() {
                           </Badge>
                         )}
                       </label>
-                      <Input
-                        id="new-exercise-file"
-                        className="sr-only"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-                        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                      <Controller
+                        control={control}
+                        name="file"
+                        render={({ field: { onChange, ref } }) => (
+                          <Input
+                            id="new-exercise-file"
+                            ref={ref}
+                            className="sr-only"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                            aria-invalid={Boolean(errors.file)}
+                            onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+                          />
+                        )}
                       />
                       <FieldDescription>
                         JPG، PNG، WebP، MP4 یا WebM تا ۱۰۰ مگابایت
                       </FieldDescription>
+                      <FieldError>{errors.file?.message}</FieldError>
                     </Field>
                   </FieldGroup>
                 </div>
-                {formError && (
+                {errors.root?.message && (
                   <FieldError className="border-t bg-destructive/5 px-4 py-3">
-                    {formError}
+                    {errors.root.message}
                   </FieldError>
                 )}
                 <DialogFooter className="items-stretch border-t bg-background p-4 sm:items-center">
                   <DialogClose asChild>
-                    <Button type="button" variant="outline" disabled={saving}>
+                    <Button type="button" variant="outline" disabled={isSubmitting}>
                       انصراف
                     </Button>
                   </DialogClose>
-                  <Button type="submit" disabled={saving}>
-                    {saving ? (
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
                       <Spinner data-icon="inline-start" />
                     ) : (
                       <Plus data-icon="inline-start" />
                     )}
-                    {saving ? 'در حال ذخیره...' : 'افزودن به کتابخانه'}
+                    {isSubmitting ? 'در حال ذخیره...' : 'افزودن به کتابخانه'}
                   </Button>
                 </DialogFooter>
               </form>

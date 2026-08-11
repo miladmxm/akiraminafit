@@ -1,34 +1,41 @@
-import { useState } from 'react';
+import { valibotResolver } from '@hookform/resolvers/valibot';
 import { ArrowLeft, CheckCircle2, Dumbbell, Loader2, ShieldCheck, Smartphone } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { authClient } from '@/lib/auth-client';
 import { isDemoMode } from '@/lib/api';
+import { loginSchema, type LoginFormValues } from '@/lib/form-schemas';
 import { setStoredRole } from '@/lib/session-store';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
+    resolver: valibotResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
   const enterDemo = (role: 'coach' | 'student') => {
     setStoredRole(role);
     void navigate(role === 'coach' ? '/coach' : '/student');
   };
 
-  const login = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError('');
-    setLoading(true);
+  const login = async ({ email, password }: LoginFormValues) => {
     const result = await authClient.signIn.email({ email, password });
-    setLoading(false);
     if (result.error) {
-      setError(result.error.message ?? 'ورود ناموفق بود.');
+      setError('root', {
+        type: 'server',
+        message: result.error.message ?? 'ورود ناموفق بود.',
+      });
       return;
     }
     const session = await authClient.getSession();
@@ -79,41 +86,47 @@ export function LoginPage() {
               <CardDescription>برای مدیریت یا اجرای برنامه تمرینی وارد حساب شوید.</CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-0 sm:p-8 sm:pt-0">
-              <form className="space-y-4" onSubmit={login}>
-                <label className="block space-y-2">
-                  <span className="text-sm font-bold">ایمیل</span>
-                  <Input
-                    dir="ltr"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    autoComplete="email"
-                  />
-                </label>
-                <label className="block space-y-2">
-                  <span className="text-sm font-bold">رمز عبور</span>
-                  <Input
-                    dir="ltr"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    autoComplete="current-password"
-                  />
-                </label>
-                {error && (
-                  <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
-                    {error}
-                  </p>
-                )}
-                <Button className="w-full" size="lg" disabled={loading}>
-                  {loading ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : (
-                    <>
-                      ورود <ArrowLeft className="size-4" />
-                    </>
+              <form noValidate onSubmit={handleSubmit(login)}>
+                <FieldGroup>
+                  <Field data-invalid={Boolean(errors.email)}>
+                    <FieldLabel htmlFor="login-email">ایمیل</FieldLabel>
+                    <Input
+                      id="login-email"
+                      dir="ltr"
+                      type="email"
+                      autoComplete="email"
+                      aria-invalid={Boolean(errors.email)}
+                      {...register('email')}
+                    />
+                    <FieldError>{errors.email?.message}</FieldError>
+                  </Field>
+                  <Field data-invalid={Boolean(errors.password)}>
+                    <FieldLabel htmlFor="login-password">رمز عبور</FieldLabel>
+                    <Input
+                      id="login-password"
+                      dir="ltr"
+                      type="password"
+                      autoComplete="current-password"
+                      aria-invalid={Boolean(errors.password)}
+                      {...register('password')}
+                    />
+                    <FieldError>{errors.password?.message}</FieldError>
+                  </Field>
+                  {errors.root?.message && (
+                    <FieldError className="rounded-xl bg-red-50 px-3 py-2 text-red-700">
+                      {errors.root.message}
+                    </FieldError>
                   )}
-                </Button>
+                  <Button className="w-full" type="submit" size="lg" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <Loader2 className="size-5 animate-spin" />
+                    ) : (
+                      <>
+                        ورود <ArrowLeft data-icon="inline-end" />
+                      </>
+                    )}
+                  </Button>
+                </FieldGroup>
               </form>
 
               {isDemoMode && (

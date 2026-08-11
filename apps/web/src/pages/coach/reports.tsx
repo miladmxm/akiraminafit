@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { valibotResolver } from '@hookform/resolvers/valibot';
 import {
   Activity,
   CalendarDays,
@@ -9,6 +10,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { JalaliDatePicker } from '@/components/jalali-date-picker';
 import { ProgressChart } from '@/components/progress-chart';
 import { MetricCard } from '@/components/metric-card';
@@ -24,10 +26,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch, isDemoMode } from '@/lib/api';
 import { bodyProgress, demoStudents } from '@/lib/demo-data';
+import { reportSchema, type ReportFormValues } from '@/lib/form-schemas';
 import { formatFaDate, formatFaNumber } from '@/lib/utils';
 import { todayApiValue } from '@/lib/utils';
 
@@ -59,10 +72,22 @@ const numberOrNull = (value: string) => (value.trim() ? Number(value) : null);
 export function CoachReportsPage() {
   const queryClient = useQueryClient();
   const [studentId, setStudentId] = useState(isDemoMode ? demoStudents[0]!.id : '');
-  const [form, setForm] = useState(emptyForm);
+  const [reportOpen, setReportOpen] = useState(false);
   const [status, setStatus] = useState('');
-  const [saving, setSaving] = useState(false);
   const [rangeMonths, setRangeMonths] = useState<6 | 12>(6);
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    setValue,
+    getValues,
+    formState: { errors, isSubmitting },
+  } = useForm<ReportFormValues>({
+    resolver: valibotResolver(reportSchema),
+    defaultValues: { ...emptyForm, studentId },
+  });
 
   const studentsQuery = useQuery({
     queryKey: ['coach', 'students'],
@@ -72,8 +97,11 @@ export function CoachReportsPage() {
   const students = isDemoMode ? demoStudents : (studentsQuery.data?.data ?? []);
 
   useEffect(() => {
-    if (!isDemoMode && !studentId && students[0]) setStudentId(students[0].id);
-  }, [studentId, students]);
+    if (!isDemoMode && !studentId && students[0]) {
+      setStudentId(students[0].id);
+      if (!getValues('studentId')) setValue('studentId', students[0].id);
+    }
+  }, [getValues, setValue, studentId, students]);
 
   const reportsQuery = useQuery({
     queryKey: ['coach', 'reports', studentId],
@@ -127,12 +155,7 @@ export function CoachReportsPage() {
     URL.revokeObjectURL(url);
   };
 
-  const saveReport = async () => {
-    if (!studentId) {
-      setStatus('ابتدا شاگرد را انتخاب کن.');
-      return;
-    }
-    setSaving(true);
+  const saveReport = async (form: ReportFormValues) => {
     setStatus('');
     try {
       if (!isDemoMode) {
@@ -140,7 +163,7 @@ export function CoachReportsPage() {
           method: 'POST',
           demoRole: 'coach',
           body: JSON.stringify({
-            studentId,
+            studentId: form.studentId,
             recordedAt: form.recordedAt,
             weightKg: numberOrNull(form.weightKg),
             heightCm: null,
@@ -153,14 +176,17 @@ export function CoachReportsPage() {
             notes: form.notes,
           }),
         });
-        await queryClient.invalidateQueries({ queryKey: ['coach', 'reports', studentId] });
+        await queryClient.invalidateQueries({ queryKey: ['coach', 'reports', form.studentId] });
       }
-      setForm(emptyForm);
+      setStudentId(form.studentId);
+      reset({ ...emptyForm, studentId: form.studentId });
+      setReportOpen(false);
       setStatus(isDemoMode ? 'گزارش نمایشی ثبت شد.' : 'گزارش جسمانی با موفقیت ثبت شد.');
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'ثبت گزارش ناموفق بود.');
-    } finally {
-      setSaving(false);
+      setError('root', {
+        type: 'server',
+        message: error instanceof Error ? error.message : 'ثبت گزارش ناموفق بود.',
+      });
     }
   };
 
@@ -174,10 +200,16 @@ export function CoachReportsPage() {
             <Button variant="outline" onClick={exportReports}>
               <Download data-icon="inline-start" /> خروجی گزارش
             </Button>
-            <Dialog>
+            <Dialog
+              open={reportOpen}
+              onOpenChange={(open) => {
+                setReportOpen(open);
+                if (open) reset({ ...emptyForm, studentId });
+              }}
+            >
               <DialogTrigger asChild>
                 <Button>
-                  <Plus className="size-4" /> ثبت وضعیت
+                  <Plus data-icon="inline-start" /> ثبت وضعیت
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-2xl">
@@ -187,102 +219,91 @@ export function CoachReportsPage() {
                     اندازه‌گیری‌های شاگرد را برای یک تاریخ مشخص ثبت کن.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="space-y-2 sm:col-span-2">
-                    <span className="text-sm font-bold">شاگرد</span>
-                    <select
-                      className="h-11 w-full rounded-xl border bg-white px-3 text-sm"
-                      value={studentId}
-                      onChange={(event) => setStudentId(event.target.value)}
-                    >
-                      <option value="" disabled>
-                        انتخاب شاگرد
-                      </option>
-                      {students.map((student) => (
-                        <option key={student.id} value={student.id}>
-                          {student.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-bold">تاریخ</span>
-                    <JalaliDatePicker
-                      value={form.recordedAt}
-                      onChange={(recordedAt) => setForm({ ...form, recordedAt })}
-                      required
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-bold">وزن (kg)</span>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={form.weightKg}
-                      onChange={(event) => setForm({ ...form, weightKg: event.target.value })}
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-bold">درصد چربی</span>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={form.bodyFatPercent}
-                      onChange={(event) => setForm({ ...form, bodyFatPercent: event.target.value })}
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-bold">توده عضلانی (kg)</span>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={form.muscleMassKg}
-                      onChange={(event) => setForm({ ...form, muscleMassKg: event.target.value })}
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-bold">دور کمر (cm)</span>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={form.waistCm}
-                      onChange={(event) => setForm({ ...form, waistCm: event.target.value })}
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-bold">دور سینه (cm)</span>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={form.chestCm}
-                      onChange={(event) => setForm({ ...form, chestCm: event.target.value })}
-                    />
-                  </label>
-                  <label className="space-y-2">
-                    <span className="text-sm font-bold">دور بازو (cm)</span>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={form.armRightCm}
-                      onChange={(event) => setForm({ ...form, armRightCm: event.target.value })}
-                    />
-                  </label>
-                  <label className="space-y-2 sm:col-span-2">
-                    <span className="text-sm font-bold">یادداشت</span>
-                    <Textarea
-                      value={form.notes}
-                      onChange={(event) => setForm({ ...form, notes: event.target.value })}
-                    />
-                  </label>
-                </div>
-                {status && (
-                  <p className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold">
-                    {status}
-                  </p>
-                )}
-                <Button className="mt-5 w-full" disabled={saving} onClick={() => void saveReport()}>
-                  {saving ? 'در حال ثبت...' : 'ثبت گزارش'}
-                </Button>
+                <form noValidate onSubmit={handleSubmit(saveReport)}>
+                  <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.studentId)}>
+                      <FieldLabel htmlFor="report-student">شاگرد</FieldLabel>
+                      <Controller
+                        control={control}
+                        name="studentId"
+                        render={({ field }) => (
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger
+                              id="report-student"
+                              aria-invalid={Boolean(errors.studentId)}
+                            >
+                              <SelectValue placeholder="انتخاب شاگرد" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectGroup>
+                                {students.map((student) => (
+                                  <SelectItem key={student.id} value={student.id}>
+                                    {student.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FieldError>{errors.studentId?.message}</FieldError>
+                    </Field>
+                    <Field data-invalid={Boolean(errors.recordedAt)}>
+                      <FieldLabel htmlFor="report-date">تاریخ</FieldLabel>
+                      <Controller
+                        control={control}
+                        name="recordedAt"
+                        render={({ field }) => (
+                          <JalaliDatePicker
+                            id="report-date"
+                            value={field.value}
+                            onChange={field.onChange}
+                            required
+                          />
+                        )}
+                      />
+                      <FieldError>{errors.recordedAt?.message}</FieldError>
+                    </Field>
+                    {(
+                      [
+                        ['weightKg', 'وزن (kg)'],
+                        ['bodyFatPercent', 'درصد چربی'],
+                        ['muscleMassKg', 'توده عضلانی (kg)'],
+                        ['waistCm', 'دور کمر (cm)'],
+                        ['chestCm', 'دور سینه (cm)'],
+                        ['armRightCm', 'دور بازو (cm)'],
+                      ] as const
+                    ).map(([name, label]) => (
+                      <Field key={name} data-invalid={Boolean(errors[name])}>
+                        <FieldLabel htmlFor={`report-${name}`}>{label}</FieldLabel>
+                        <Input
+                          id={`report-${name}`}
+                          type="number"
+                          step="0.1"
+                          aria-invalid={Boolean(errors[name])}
+                          {...register(name)}
+                        />
+                        <FieldError>{errors[name]?.message}</FieldError>
+                      </Field>
+                    ))}
+                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.notes)}>
+                      <FieldLabel htmlFor="report-notes">یادداشت</FieldLabel>
+                      <Textarea
+                        id="report-notes"
+                        aria-invalid={Boolean(errors.notes)}
+                        {...register('notes')}
+                      />
+                      <FieldError>{errors.notes?.message}</FieldError>
+                    </Field>
+                    {errors.root?.message && (
+                      <FieldError className="sm:col-span-2">{errors.root.message}</FieldError>
+                    )}
+                  </FieldGroup>
+                  <Button className="mt-5 w-full" type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Spinner data-icon="inline-start" />}
+                    {isSubmitting ? 'در حال ثبت...' : 'ثبت گزارش'}
+                  </Button>
+                </form>
               </DialogContent>
             </Dialog>
           </div>

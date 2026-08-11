@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { valibotResolver } from '@hookform/resolvers/valibot';
 import {
   Dumbbell,
   Mail,
@@ -10,7 +11,8 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { JalaliDatePicker } from '@/components/jalali-date-picker';
 import { PageHeader } from '@/components/page-header';
@@ -32,7 +34,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -47,6 +49,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch, isDemoMode } from '@/lib/api';
 import { demoStudents, type DemoStudent } from '@/lib/demo-data';
+import { studentSchema, type StudentFormValues } from '@/lib/form-schemas';
 import { formatFaDate, formatFaNumber } from '@/lib/utils';
 
 type StudentApiRow = {
@@ -71,7 +74,7 @@ type StudentListItem = DemoStudent & {
   medicalNotes: string;
 };
 
-const emptyForm = {
+const emptyForm: StudentFormValues = {
   name: '',
   email: '',
   phone: '',
@@ -104,9 +107,19 @@ export function CoachStudentsPage() {
   const [query, setQuery] = useState('');
   const [notice, setNotice] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [form, setForm] = useState(emptyForm);
   const [selected, setSelected] = useState<StudentListItem | null>(null);
   const [demoItems, setDemoItems] = useState(demoStudents);
+  const {
+    control,
+    register,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<StudentFormValues>({
+    resolver: valibotResolver(studentSchema),
+    defaultValues: emptyForm,
+  });
 
   const studentsQuery = useQuery({
     queryKey: ['coach', 'students'],
@@ -116,7 +129,7 @@ export function CoachStudentsPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (form: StudentFormValues) =>
       apiFetch<{ message: string }>('/api/coach/students', {
         method: 'POST',
         demoRole: 'coach',
@@ -130,11 +143,10 @@ export function CoachStudentsPage() {
       }),
     onSuccess: async (result) => {
       setNotice(result.message);
-      setForm(emptyForm);
+      reset(emptyForm);
       setCreateOpen(false);
       await queryClient.invalidateQueries({ queryKey: ['coach', 'students'] });
     },
-    onError: (error: Error) => setNotice(error.message),
   });
 
   const source: StudentListItem[] = isDemoMode
@@ -172,19 +184,8 @@ export function CoachStudentsPage() {
     [query, source],
   );
 
-  const createStudent = async (event: FormEvent) => {
-    event.preventDefault();
+  const createStudent = async (form: StudentFormValues) => {
     setNotice('');
-    if (
-      !form.name.trim() ||
-      !form.email.trim() ||
-      !form.phone.trim() ||
-      form.password.length < 8 ||
-      !form.goal.trim()
-    ) {
-      setNotice('نام، ایمیل، موبایل، هدف و رمز عبور حداقل ۸ کاراکتری الزامی است.');
-      return;
-    }
     if (isDemoMode) {
       setDemoItems((current) => [
         {
@@ -201,11 +202,18 @@ export function CoachStudentsPage() {
         ...current,
       ]);
       setNotice('حساب و پرونده نمایشی شاگرد ساخته شد.');
-      setForm(emptyForm);
+      reset(emptyForm);
       setCreateOpen(false);
       return;
     }
-    await createMutation.mutateAsync();
+    try {
+      await createMutation.mutateAsync(form);
+    } catch (error) {
+      setError('root', {
+        type: 'server',
+        message: error instanceof Error ? error.message : 'ساخت حساب شاگرد ناموفق بود.',
+      });
+    }
   };
 
   return (
@@ -214,7 +222,13 @@ export function CoachStudentsPage() {
         title="شاگردان"
         description="حساب، پرونده، هدف و برنامه هر شاگرد را یکجا مدیریت کن."
         action={
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <Dialog
+            open={createOpen}
+            onOpenChange={(open) => {
+              setCreateOpen(open);
+              if (!open) reset(emptyForm);
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <UserPlus data-icon="inline-start" /> تعریف شاگرد
@@ -227,86 +241,101 @@ export function CoachStudentsPage() {
                   حساب ورود و اطلاعات اولیه پرونده را خودت برای شاگرد بساز.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={(event) => void createStudent(event)}>
+              <form noValidate onSubmit={handleSubmit(createStudent)}>
                 <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                  <Field>
+                  <Field data-invalid={Boolean(errors.name)}>
                     <FieldLabel htmlFor="student-name">نام و نام خانوادگی</FieldLabel>
                     <Input
                       id="student-name"
-                      value={form.name}
-                      onChange={(event) => setForm({ ...form, name: event.target.value })}
                       autoComplete="name"
+                      aria-invalid={Boolean(errors.name)}
+                      {...register('name')}
                     />
+                    <FieldError>{errors.name?.message}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(errors.phone)}>
                     <FieldLabel htmlFor="student-phone">شماره موبایل</FieldLabel>
                     <Input
                       id="student-phone"
                       dir="ltr"
-                      value={form.phone}
-                      onChange={(event) => setForm({ ...form, phone: event.target.value })}
                       autoComplete="tel"
+                      aria-invalid={Boolean(errors.phone)}
+                      {...register('phone')}
                     />
+                    <FieldError>{errors.phone?.message}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(errors.email)}>
                     <FieldLabel htmlFor="student-email">ایمیل ورود</FieldLabel>
                     <Input
                       id="student-email"
                       dir="ltr"
                       type="email"
-                      value={form.email}
-                      onChange={(event) => setForm({ ...form, email: event.target.value })}
                       autoComplete="email"
+                      aria-invalid={Boolean(errors.email)}
+                      {...register('email')}
                     />
+                    <FieldError>{errors.email?.message}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(errors.password)}>
                     <FieldLabel htmlFor="student-password">رمز عبور اولیه</FieldLabel>
                     <Input
                       id="student-password"
                       dir="ltr"
                       type="password"
-                      minLength={8}
-                      value={form.password}
-                      onChange={(event) => setForm({ ...form, password: event.target.value })}
                       autoComplete="new-password"
+                      aria-invalid={Boolean(errors.password)}
+                      {...register('password')}
                     />
+                    <FieldError>{errors.password?.message}</FieldError>
                   </Field>
-                  <Field className="sm:col-span-2">
+                  <Field className="sm:col-span-2" data-invalid={Boolean(errors.goal)}>
                     <FieldLabel htmlFor="student-goal">هدف تمرینی</FieldLabel>
                     <Textarea
                       id="student-goal"
-                      value={form.goal}
-                      onChange={(event) => setForm({ ...form, goal: event.target.value })}
                       placeholder="مثلاً کاهش چربی و افزایش استقامت"
+                      aria-invalid={Boolean(errors.goal)}
+                      {...register('goal')}
                     />
+                    <FieldError>{errors.goal?.message}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(errors.birthDate)}>
                     <FieldLabel htmlFor="student-birth-date">تاریخ تولد</FieldLabel>
-                    <JalaliDatePicker
-                      id="student-birth-date"
-                      value={form.birthDate}
-                      onChange={(birthDate) => setForm({ ...form, birthDate })}
+                    <Controller
+                      control={control}
+                      name="birthDate"
+                      render={({ field }) => (
+                        <JalaliDatePicker
+                          id="student-birth-date"
+                          value={field.value}
+                          onChange={field.onChange}
+                        />
+                      )}
                     />
+                    <FieldError>{errors.birthDate?.message}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(errors.gender)}>
                     <FieldLabel htmlFor="student-gender">جنسیت</FieldLabel>
-                    <Select
-                      value={form.gender}
-                      onValueChange={(gender) => setForm({ ...form, gender })}
-                    >
-                      <SelectTrigger id="student-gender">
-                        <SelectValue placeholder="انتخاب جنسیت" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          <SelectItem value="male">مرد</SelectItem>
-                          <SelectItem value="female">زن</SelectItem>
-                          <SelectItem value="other">سایر</SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      control={control}
+                      name="gender"
+                      render={({ field }) => (
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger id="student-gender" aria-invalid={Boolean(errors.gender)}>
+                            <SelectValue placeholder="انتخاب جنسیت" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="male">مرد</SelectItem>
+                              <SelectItem value="female">زن</SelectItem>
+                              <SelectItem value="other">سایر</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <FieldError>{errors.gender?.message}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(errors.heightCm)}>
                     <FieldLabel htmlFor="student-height">قد اولیه (سانتی‌متر)</FieldLabel>
                     <Input
                       id="student-height"
@@ -314,11 +343,12 @@ export function CoachStudentsPage() {
                       min="1"
                       max="300"
                       step="0.1"
-                      value={form.heightCm}
-                      onChange={(event) => setForm({ ...form, heightCm: event.target.value })}
+                      aria-invalid={Boolean(errors.heightCm)}
+                      {...register('heightCm')}
                     />
+                    <FieldError>{errors.heightCm?.message}</FieldError>
                   </Field>
-                  <Field>
+                  <Field data-invalid={Boolean(errors.initialWeightKg)}>
                     <FieldLabel htmlFor="student-weight">وزن اولیه (کیلوگرم)</FieldLabel>
                     <Input
                       id="student-weight"
@@ -326,28 +356,31 @@ export function CoachStudentsPage() {
                       min="1"
                       max="500"
                       step="0.1"
-                      value={form.initialWeightKg}
-                      onChange={(event) =>
-                        setForm({ ...form, initialWeightKg: event.target.value })
-                      }
+                      aria-invalid={Boolean(errors.initialWeightKg)}
+                      {...register('initialWeightKg')}
                     />
+                    <FieldError>{errors.initialWeightKg?.message}</FieldError>
                   </Field>
-                  <Field className="sm:col-span-2">
+                  <Field className="sm:col-span-2" data-invalid={Boolean(errors.medicalNotes)}>
                     <FieldLabel htmlFor="student-medical-notes">آسیب‌دیدگی و نکات پزشکی</FieldLabel>
                     <Textarea
                       id="student-medical-notes"
-                      value={form.medicalNotes}
-                      onChange={(event) => setForm({ ...form, medicalNotes: event.target.value })}
+                      aria-invalid={Boolean(errors.medicalNotes)}
+                      {...register('medicalNotes')}
                     />
+                    <FieldError>{errors.medicalNotes?.message}</FieldError>
                   </Field>
+                  {errors.root?.message && (
+                    <FieldError className="sm:col-span-2">{errors.root.message}</FieldError>
+                  )}
                 </FieldGroup>
-                <Button className="mt-5 w-full" type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? (
+                <Button className="mt-5 w-full" type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
                     <Spinner data-icon="inline-start" />
                   ) : (
                     <Plus data-icon="inline-start" />
                   )}
-                  {createMutation.isPending ? 'در حال ساخت حساب...' : 'ساخت حساب و پرونده'}
+                  {isSubmitting ? 'در حال ساخت حساب...' : 'ساخت حساب و پرونده'}
                 </Button>
               </form>
             </DialogContent>

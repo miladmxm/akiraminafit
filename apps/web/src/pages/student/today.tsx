@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { valibotResolver } from '@hookform/resolvers/valibot';
 import {
   Check,
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { ExerciseImage } from '@/components/exercise-image';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -26,10 +28,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Field, FieldError } from '@/components/ui/field';
 import { Progress } from '@/components/ui/progress';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch, apiUrl, isDemoMode } from '@/lib/api';
 import { todayWorkout, type DemoWorkoutItem } from '@/lib/demo-data';
+import { workoutNoteSchema, type WorkoutNoteFormValues } from '@/lib/form-schemas';
 import { enqueueMutation } from '@/lib/offline-queue';
 import { formatFaDate, formatFaNumber, percent } from '@/lib/utils';
 
@@ -71,8 +76,16 @@ function readCompleted(): string[] {
 export function StudentTodayPage() {
   const [completed, setCompleted] = useState<string[]>(isDemoMode ? readCompleted() : []);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [note, setNote] = useState('');
   const [syncStatus, setSyncStatus] = useState('');
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<WorkoutNoteFormValues>({
+    resolver: valibotResolver(workoutNoteSchema),
+    defaultValues: { note: '' },
+  });
 
   const todayQuery = useQuery({
     queryKey: ['student', 'workout', 'today'],
@@ -109,9 +122,9 @@ export function StudentTodayPage() {
   useEffect(() => {
     if (!isDemoMode && apiData) {
       setCompleted(apiData.items.filter((item) => item.isCompleted).map((item) => item.id));
-      setNote(apiData.session.studentNote ?? '');
+      reset({ note: apiData.session.studentNote ?? '' });
     }
-  }, [apiData]);
+  }, [apiData, reset]);
 
   const progress = percent(completed.length, workoutItems.length);
   const activeExercise = useMemo(
@@ -166,6 +179,25 @@ export function StudentTodayPage() {
         setCompleted(completed);
         setSyncStatus(error instanceof Error ? error.message : 'ذخیره وضعیت ناموفق بود.');
       }
+    }
+  };
+
+  const saveNote = async ({ note }: WorkoutNoteFormValues) => {
+    if (isDemoMode) {
+      setSyncStatus('یادداشت نمایشی ذخیره شد.');
+      return;
+    }
+    const sessionId = apiData?.session.id;
+    if (!sessionId) return;
+    try {
+      await apiFetch(`/api/student/workouts/sessions/${sessionId}`, {
+        method: 'PATCH',
+        demoRole: 'student',
+        body: JSON.stringify({ studentNote: note }),
+      });
+      setSyncStatus('یادداشت جلسه ذخیره شد.');
+    } catch (error) {
+      setSyncStatus(error instanceof Error ? error.message : 'ذخیره یادداشت ناموفق بود.');
     }
   };
 
@@ -349,32 +381,20 @@ export function StudentTodayPage() {
           <CardDescription>احساس کلی، درد احتمالی یا نکته‌ای که مربی باید بداند.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Textarea
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            placeholder="مثلاً ست آخر پرس سینه سخت بود ولی فرم حفظ شد..."
-          />
-          <Button
-            className="mt-3"
-            variant="outline"
-            onClick={() => {
-              if (isDemoMode) {
-                setSyncStatus('یادداشت نمایشی ذخیره شد.');
-                return;
-              }
-              const sessionId = apiData?.session.id;
-              if (!sessionId) return;
-              void apiFetch(`/api/student/workouts/sessions/${sessionId}`, {
-                method: 'PATCH',
-                demoRole: 'student',
-                body: JSON.stringify({ studentNote: note }),
-              })
-                .then(() => setSyncStatus('یادداشت جلسه ذخیره شد.'))
-                .catch((error: Error) => setSyncStatus(error.message));
-            }}
-          >
-            ذخیره یادداشت
-          </Button>
+          <form noValidate onSubmit={handleSubmit(saveNote)}>
+            <Field data-invalid={Boolean(errors.note)}>
+              <Textarea
+                placeholder="مثلاً ست آخر پرس سینه سخت بود ولی فرم حفظ شد..."
+                aria-invalid={Boolean(errors.note)}
+                {...register('note')}
+              />
+              <FieldError>{errors.note?.message}</FieldError>
+            </Field>
+            <Button className="mt-3" type="submit" variant="outline" disabled={isSubmitting}>
+              {isSubmitting && <Spinner data-icon="inline-start" />}
+              {isSubmitting ? 'در حال ذخیره...' : 'ذخیره یادداشت'}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
