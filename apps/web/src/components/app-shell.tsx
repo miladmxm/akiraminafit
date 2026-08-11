@@ -14,12 +14,13 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import { PwaStatus } from '@/components/pwa-status';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { authClient } from '@/lib/auth-client';
 import { setStoredRole } from '@/lib/session-store';
@@ -40,12 +41,16 @@ const studentNav = [
 ];
 
 export function AppShell({ role }: { role: UserRole }) {
-  const { data: session } = authClient.useSession();
+  const {
+    data: session,
+    error: sessionError,
+    isPending: isSessionPending,
+  } = authClient.useSession();
   const [mobileMenu, setMobileMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const nav = role === 'coach' ? coachNav : studentNav;
-  const sessionUser = session?.user as { name?: string } | undefined;
+  const sessionUser = session?.user as { name?: string; role?: string } | undefined;
   const userName = sessionUser?.name?.trim() || (role === 'coach' ? 'مربی' : 'شاگرد');
   const user = {
     name: userName,
@@ -57,11 +62,33 @@ export function AppShell({ role }: { role: UserRole }) {
       .join('‌'),
   };
 
+  useEffect(() => {
+    if (isSessionPending || sessionError) return;
+    if (!session) {
+      setStoredRole(null);
+      return;
+    }
+
+    const sessionRole = sessionUser?.role === 'coach' ? 'coach' : 'student';
+    if (sessionRole !== role) setStoredRole(sessionRole);
+  }, [isSessionPending, role, session, sessionError, sessionUser?.role]);
+
   const logout = async () => {
-    await authClient.signOut().catch(() => undefined);
     setStoredRole(null);
+    await authClient.signOut().catch(() => undefined);
     void navigate('/login');
   };
+
+  if (isSessionPending || (!session && !sessionError)) {
+    return (
+      <main className="grid min-h-screen place-items-center">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Spinner className="size-5" />
+          <span>در حال بررسی نشست...</span>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <div className="min-h-screen">

@@ -1,3 +1,5 @@
+import { setStoredRole } from '@/lib/session-store';
+
 type QueueItem = {
   id: string;
   url: string;
@@ -52,7 +54,11 @@ export async function flushMutationQueue() {
       };
       if (item.body !== undefined) request.body = JSON.stringify(item.body);
       const response = await fetch(item.url, request);
-      if (!response.ok && (response.status >= 500 || response.status === 401)) break;
+      if (response.status === 401) {
+        setStoredRole(null);
+        break;
+      }
+      if (!response.ok && response.status >= 500) break;
       const tx = db.transaction(STORE_NAME, 'readwrite');
       tx.objectStore(STORE_NAME).delete(item.id);
     } catch {

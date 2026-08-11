@@ -14,6 +14,7 @@ export function getStoredRole(): UserRole | null {
 }
 
 export function setStoredRole(role: UserRole | null) {
+  if (getStoredRole() === role) return;
   if (role) localStorage.setItem(KEY, role);
   else localStorage.removeItem(KEY);
   emit();
@@ -23,7 +24,14 @@ export function useStoredRole() {
   return useSyncExternalStore(
     (listener) => {
       listeners.add(listener);
-      return () => listeners.delete(listener);
+      const handleStorage = (event: StorageEvent) => {
+        if (event.storageArea === localStorage && event.key === KEY) listener();
+      };
+      window.addEventListener('storage', handleStorage);
+      return () => {
+        listeners.delete(listener);
+        window.removeEventListener('storage', handleStorage);
+      };
     },
     getStoredRole,
     () => null,

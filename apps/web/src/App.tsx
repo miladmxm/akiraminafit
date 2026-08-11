@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/app-shell';
@@ -17,8 +18,12 @@ import { StudentTodayPage } from '@/pages/student/today';
 
 export default function App() {
   const role = useStoredRole();
+  const queryClient = useQueryClient();
 
   useEffect(() => installQueueSync(), []);
+  useEffect(() => {
+    if (!role) queryClient.clear();
+  }, [queryClient, role]);
 
   return (
     <Routes>

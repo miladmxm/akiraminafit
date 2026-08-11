@@ -16,7 +16,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { useSearchParams } from 'react-router-dom';
-import { ExerciseImage } from '@/components/exercise-image';
+import { EXERCISE_PLACEHOLDER_SRC, ExerciseImage } from '@/components/exercise-image';
 import { JalaliDatePicker } from '@/components/jalali-date-picker';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -93,7 +93,8 @@ function mapExercise(exercise: ApiExercise): DisplayExercise {
     muscleGroup: exercise.muscleGroup,
     equipment: exercise.equipment,
     difficulty: labels[exercise.difficulty],
-    image: exercise.media.find((item) => item.mediaType === 'image')?.url ?? '/pwa-512x512.png',
+    image:
+      exercise.media.find((item) => item.mediaType === 'image')?.url ?? EXERCISE_PLACEHOLDER_SRC,
   };
 }
 

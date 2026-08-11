@@ -34,6 +34,14 @@ export function LoginPage() {
       return;
     }
     const session = await authClient.getSession();
+    if (session.error || !session.data?.user) {
+      setStoredRole(null);
+      setError('root', {
+        type: 'server',
+        message: 'نشست ورود ایجاد نشد. دوباره تلاش کن.',
+      });
+      return;
+    }
     const sessionUser = session.data?.user as { role?: string } | undefined;
     const role = sessionUser?.role === 'coach' ? 'coach' : 'student';
     setStoredRole(role);

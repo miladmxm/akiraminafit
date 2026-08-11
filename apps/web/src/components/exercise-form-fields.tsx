@@ -1,6 +1,7 @@
 import { ImageIcon, Upload, Video, X } from 'lucide-react';
 import type { Control, FieldErrors, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 import { Controller } from 'react-hook-form';
+import { MuscleGroupCombobox } from '@/components/muscle-group-combobox';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
@@ -24,6 +25,7 @@ type ExerciseFormFieldsProps = {
   setValue: UseFormSetValue<ExerciseFormValues>;
   errors: FieldErrors<ExerciseFormValues>;
   files: File[];
+  muscleGroups: string[];
 };
 
 export function ExerciseFormFields({
@@ -33,6 +35,7 @@ export function ExerciseFormFields({
   setValue,
   errors,
   files,
+  muscleGroups,
 }: ExerciseFormFieldsProps) {
   return (
     <FieldGroup className="grid gap-4 sm:grid-cols-2">
@@ -48,12 +51,24 @@ export function ExerciseFormFields({
       </Field>
       <Field data-invalid={Boolean(errors.muscleGroup)}>
         <FieldLabel htmlFor={`${idPrefix}-muscle`}>گروه عضلانی</FieldLabel>
-        <Input
-          id={`${idPrefix}-muscle`}
-          placeholder="سینه"
-          aria-invalid={Boolean(errors.muscleGroup)}
-          {...register('muscleGroup')}
+        <Controller
+          control={control}
+          name="muscleGroup"
+          render={({ field }) => (
+            <MuscleGroupCombobox
+              ref={field.ref}
+              id={`${idPrefix}-muscle`}
+              value={field.value}
+              options={muscleGroups}
+              invalid={Boolean(errors.muscleGroup)}
+              onBlur={field.onBlur}
+              onValueChange={field.onChange}
+            />
+          )}
         />
+        <FieldDescription>
+          از گروه‌های موجود انتخاب کن یا نام گروه جدید را بنویس و اضافه کن.
+        </FieldDescription>
         <FieldError>{errors.muscleGroup?.message}</FieldError>
       </Field>
       <Field data-invalid={Boolean(errors.equipment)}>

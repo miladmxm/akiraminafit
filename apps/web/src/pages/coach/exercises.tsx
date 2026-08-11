@@ -1,16 +1,33 @@
 import { valibotResolver } from '@hookform/resolvers/valibot';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Camera, Edit3, Filter, Images, MoreVertical, Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Camera, Edit3, Filter, Images, MoreVertical, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { ExerciseFormFields } from '@/components/exercise-form-fields';
-import { ExerciseImage } from '@/components/exercise-image';
+import { EXERCISE_PLACEHOLDER_SRC, ExerciseImage } from '@/components/exercise-image';
 import { ExerciseMediaGallery } from '@/components/exercise-media-gallery';
 import { PageHeader } from '@/components/page-header';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogClose,
@@ -30,6 +47,21 @@ import {
 } from '@/components/ui/empty';
 import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { apiFetch } from '@/lib/api';
 import {
@@ -39,7 +71,6 @@ import {
 } from '@/lib/exercise-media';
 import { exerciseSchema, type ExerciseFormValues } from '@/lib/form-schemas';
 
-const groups = ['همه', 'سینه', 'پا', 'پشت', 'مرکزی', 'همسترینگ', 'سرشانه'];
 const difficultyLabel = { beginner: 'مبتدی', intermediate: 'متوسط', advanced: 'پیشرفته' } as const;
 
 const emptyValues: ExerciseFormValues = {
@@ -59,6 +90,7 @@ type ExerciseEditorProps = {
   form: UseFormReturn<ExerciseFormValues>;
   onSubmit: (values: ExerciseFormValues) => Promise<void>;
   existingMedia?: ExerciseMediaItem[];
+  muscleGroups: string[];
 };
 
 function ExerciseEditor({
@@ -68,6 +100,7 @@ function ExerciseEditor({
   form,
   onSubmit,
   existingMedia = [],
+  muscleGroups,
 }: ExerciseEditorProps) {
   const files = form.watch('files');
   const isSubmitting = form.formState.isSubmitting;
@@ -116,6 +149,7 @@ function ExerciseEditor({
               setValue={form.setValue}
               errors={form.formState.errors}
               files={files}
+              muscleGroups={muscleGroups}
             />
           </div>
           {form.formState.errors.root?.message && (
@@ -165,6 +199,9 @@ export function CoachExercisesPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<ExerciseRecord | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const createForm = useForm<ExerciseFormValues>({
     resolver: valibotResolver(exerciseSchema),
     defaultValues: emptyValues,
@@ -179,6 +216,18 @@ export function CoachExercisesPage() {
     queryFn: () => apiFetch<{ data: ExerciseRecord[] }>('/api/coach/exercises'),
   });
   const items = exercisesQuery.data?.data ?? [];
+  const muscleGroups = useMemo(
+    () =>
+      Array.from(
+        new Set(items.map((item) => item.muscleGroup.trim()).filter((item) => item.length > 0)),
+      ).sort((first, second) => first.localeCompare(second, 'fa')),
+    [items],
+  );
+
+  useEffect(() => {
+    if (group !== 'همه' && !muscleGroups.includes(group)) setGroup('همه');
+  }, [group, muscleGroups]);
+
   const filtered = useMemo(
     () =>
       items.filter(
@@ -251,6 +300,30 @@ export function CoachExercisesPage() {
     }
   };
 
+  const removeExercise = async () => {
+    if (!deleting) return;
+
+    const exercise = deleting;
+    setDeletePending(true);
+    setDeleteError('');
+    try {
+      await apiFetch(`/api/coach/exercises/${exercise.id}`, { method: 'DELETE' });
+      await queryClient.invalidateQueries({ queryKey: ['coach', 'exercises'] });
+
+      if (detailsId === exercise.id) setDetailsId(null);
+      if (editingId === exercise.id) {
+        setEditingId(null);
+        editForm.reset(emptyValues);
+      }
+      setDeleting(null);
+      setNotice(`حرکت «${exercise.title}» از کتابخانه حذف شد.`);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'حذف حرکت ناموفق بود.');
+    } finally {
+      setDeletePending(false);
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -266,6 +339,7 @@ export function CoachExercisesPage() {
             }}
             form={createForm}
             onSubmit={addExercise}
+            muscleGroups={muscleGroups}
           />
         }
       />
@@ -296,25 +370,33 @@ export function CoachExercisesPage() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </Field>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-          <Filter className="size-4 shrink-0 text-muted-foreground" />
-          {groups.map((item) => (
-            <Button
-              key={item}
-              size="sm"
-              variant={group === item ? 'default' : 'outline'}
-              onClick={() => setGroup(item)}
-            >
-              {item}
-            </Button>
-          ))}
-        </div>
+        <Field className="w-full gap-0 lg:w-60">
+          <FieldLabel className="sr-only" htmlFor="exercise-muscle-filter">
+            فیلتر گروه عضلانی
+          </FieldLabel>
+          <Select value={group} onValueChange={setGroup}>
+            <SelectTrigger id="exercise-muscle-filter">
+              <SelectValue placeholder="همه گروه‌ها" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="همه">همه گروه‌ها</SelectItem>
+                {muscleGroups.map((muscleGroup) => (
+                  <SelectItem key={muscleGroup} value={muscleGroup}>
+                    {muscleGroup}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {filtered.map((exercise) => {
           const cover =
-            exercise.media.find((media) => media.mediaType === 'image')?.url ?? '/pwa-512x512.png';
+            exercise.media.find((media) => media.mediaType === 'image')?.url ??
+            EXERCISE_PLACEHOLDER_SRC;
           return (
             <Card
               key={exercise.id}
@@ -326,16 +408,36 @@ export function CoachExercisesPage() {
                   alt={exercise.title}
                   className="size-full object-cover transition duration-500 hover:scale-105"
                 />
-                <div className="absolute inset-x-3 top-3 flex items-center justify-between">
-                  <Badge>{exercise.muscleGroup}</Badge>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    onClick={() => setDetailsId(exercise.id)}
-                    aria-label={`جزئیات ${exercise.title}`}
-                  >
-                    <MoreVertical />
-                  </Button>
+                <div className="absolute end-3 top-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        aria-label={`عملیات ${exercise.title}`}
+                      >
+                        <MoreVertical />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuGroup>
+                        <DropdownMenuItem onSelect={() => openEdit(exercise)}>
+                          <Edit3 />
+                          ویرایش
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={() => {
+                            setDeleteError('');
+                            setDeleting(exercise);
+                          }}
+                        >
+                          <Trash2 />
+                          حذف
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
               <CardHeader>
@@ -343,7 +445,8 @@ export function CoachExercisesPage() {
                   <div className="min-w-0">
                     <CardTitle>{exercise.title}</CardTitle>
                     <CardDescription>
-                      {exercise.equipment} • {difficultyLabel[exercise.difficulty]}
+                      {exercise.muscleGroup} • {exercise.equipment} •{' '}
+                      {difficultyLabel[exercise.difficulty]}
                     </CardDescription>
                   </div>
                   <Badge variant="secondary">
@@ -355,19 +458,16 @@ export function CoachExercisesPage() {
                 <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
                   {exercise.description || 'بدون توضیح'}
                 </p>
-                <div className="mt-4 flex gap-2">
-                  <Button
-                    className="flex-1"
-                    variant="outline"
-                    onClick={() => setDetailsId(exercise.id)}
-                  >
-                    مشاهده
-                  </Button>
-                  <Button variant="outline" onClick={() => openEdit(exercise)}>
-                    <Edit3 data-icon="inline-start" /> ویرایش
-                  </Button>
-                </div>
               </CardContent>
+              <CardFooter>
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => setDetailsId(exercise.id)}
+                >
+                  مشاهده
+                </Button>
+              </CardFooter>
             </Card>
           );
         })}
@@ -432,7 +532,54 @@ export function CoachExercisesPage() {
         form={editForm}
         onSubmit={editExercise}
         existingMedia={editing?.media ?? []}
+        muscleGroups={muscleGroups}
       />
+
+      <AlertDialog
+        open={Boolean(deleting)}
+        onOpenChange={(open) => {
+          if (!open && !deletePending) {
+            setDeleting(null);
+            setDeleteError('');
+          }
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف حرکت؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              حرکت «{deleting?.title}» از کتابخانه و انتخاب‌های آینده حذف می‌شود. برنامه‌های قبلی بدون
+              تغییر باقی می‌مانند.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && <FieldError className="mt-4">{deleteError}</FieldError>}
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button type="button" variant="outline" disabled={deletePending}>
+                انصراف
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={deletePending}
+                onClick={(event) => {
+                  event.preventDefault();
+                  void removeExercise();
+                }}
+              >
+                {deletePending ? (
+                  <Spinner data-icon="inline-start" />
+                ) : (
+                  <Trash2 data-icon="inline-start" />
+                )}
+                {deletePending ? 'در حال حذف...' : 'حذف حرکت'}
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

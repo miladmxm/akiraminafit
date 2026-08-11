@@ -1,3 +1,5 @@
+import { setStoredRole } from '@/lib/session-store';
+
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 export const apiUrl = (path: string) => `${API_URL}${path}`;
 
@@ -21,6 +23,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   });
   const data = (await response.json().catch(() => null)) as T | { message?: string } | null;
   if (!response.ok) {
+    if (response.status === 401) setStoredRole(null);
     const message =
       typeof data === 'object' && data !== null && 'message' in data && data.message
         ? String(data.message)

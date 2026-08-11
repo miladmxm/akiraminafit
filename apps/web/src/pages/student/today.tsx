@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { EXERCISE_PLACEHOLDER_SRC } from '@/components/exercise-image';
 import { ExerciseMediaGallery } from '@/components/exercise-media-gallery';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -98,7 +99,7 @@ export function StudentTodayPage() {
     return (apiData?.items ?? []).flatMap((item) => {
       if (!item.planned) return [];
       const image =
-        item.media.find((media) => media.mediaType === 'image')?.url ?? '/pwa-512x512.png';
+        item.media.find((media) => media.mediaType === 'image')?.url ?? EXERCISE_PLACEHOLDER_SRC;
       return [
         {
           id: item.id,
