@@ -5,6 +5,7 @@ import { installQueueSync } from '@/lib/offline-queue';
 import { useStoredRole } from '@/lib/session-store';
 import { CoachDashboardPage } from '@/pages/coach/dashboard';
 import { CoachExercisesPage } from '@/pages/coach/exercises';
+import { CoachMediaPage } from '@/pages/coach/media';
 import { CoachPlanBuilderPage } from '@/pages/coach/plan-builder';
 import { CoachReportsPage } from '@/pages/coach/reports';
 import { CoachStudentsPage } from '@/pages/coach/students';
@@ -44,6 +45,7 @@ export default function App() {
         <Route index element={<CoachDashboardPage />} />
         <Route path="students" element={<CoachStudentsPage />} />
         <Route path="exercises" element={<CoachExercisesPage />} />
+        <Route path="media" element={<CoachMediaPage />} />
         <Route path="plans/new" element={<CoachPlanBuilderPage />} />
         <Route path="reports" element={<CoachReportsPage />} />
       </Route>

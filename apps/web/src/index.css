@@ -177,3 +177,14 @@ a {
     overscroll-behavior-y: contain;
   }
 }
+
+.media-gallery:fullscreen {
+  min-height: 100dvh;
+  padding: 1rem;
+}
+
+.media-gallery:fullscreen .media-gallery-stage {
+  flex: 1;
+  aspect-ratio: auto;
+  border-radius: 0.75rem;
+}

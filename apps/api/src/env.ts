@@ -9,10 +9,6 @@ const envSchema = z.object({
   WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
   BETTER_AUTH_SECRET: z.string().min(32).default('development-secret-change-me-1234567890'),
   BETTER_AUTH_URL: z.string().url().default('http://localhost:3000'),
-  DEMO_MODE: z
-    .string()
-    .default('true')
-    .transform((value) => value === 'true'),
   S3_ENDPOINT: z.string().url().default('http://localhost:9000'),
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY: z.string().default('minioadmin'),

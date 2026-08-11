@@ -38,8 +38,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { apiFetch, isDemoMode } from '@/lib/api';
-import { bodyProgress, demoStudents } from '@/lib/demo-data';
+import { apiFetch } from '@/lib/api';
 import { reportSchema, type ReportFormValues } from '@/lib/form-schemas';
 import { formatFaDate, formatFaNumber } from '@/lib/utils';
 import { todayApiValue } from '@/lib/utils';
@@ -71,7 +70,7 @@ const numberOrNull = (value: string) => (value.trim() ? Number(value) : null);
 
 export function CoachReportsPage() {
   const queryClient = useQueryClient();
-  const [studentId, setStudentId] = useState(isDemoMode ? demoStudents[0]!.id : '');
+  const [studentId, setStudentId] = useState('');
   const [reportOpen, setReportOpen] = useState(false);
   const [status, setStatus] = useState('');
   const [rangeMonths, setRangeMonths] = useState<6 | 12>(6);
@@ -91,13 +90,12 @@ export function CoachReportsPage() {
 
   const studentsQuery = useQuery({
     queryKey: ['coach', 'students'],
-    queryFn: () => apiFetch<{ data: StudentRow[] }>('/api/coach/students', { demoRole: 'coach' }),
-    enabled: !isDemoMode,
+    queryFn: () => apiFetch<{ data: StudentRow[] }>('/api/coach/students'),
   });
-  const students = isDemoMode ? demoStudents : (studentsQuery.data?.data ?? []);
+  const students = studentsQuery.data?.data ?? [];
 
   useEffect(() => {
-    if (!isDemoMode && !studentId && students[0]) {
+    if (!studentId && students[0]) {
       setStudentId(students[0].id);
       if (!getValues('studentId')) setValue('studentId', students[0].id);
     }
@@ -105,14 +103,12 @@ export function CoachReportsPage() {
 
   const reportsQuery = useQuery({
     queryKey: ['coach', 'reports', studentId],
-    queryFn: () =>
-      apiFetch<{ data: BodyReport[] }>(`/api/coach/reports/${studentId}`, { demoRole: 'coach' }),
-    enabled: !isDemoMode && Boolean(studentId),
+    queryFn: () => apiFetch<{ data: BodyReport[] }>(`/api/coach/reports/${studentId}`),
+    enabled: Boolean(studentId),
   });
 
   const reports = reportsQuery.data?.data ?? [];
   const chartData = useMemo(() => {
-    if (isDemoMode) return bodyProgress.slice(-rangeMonths);
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - rangeMonths);
     return reports
@@ -129,21 +125,19 @@ export function CoachReportsPage() {
       }));
   }, [rangeMonths, reports]);
 
-  const latest = isDemoMode ? null : reports[0];
+  const latest = reports[0];
   const latestWeight = latest?.weightKg ? formatFaNumber(latest.weightKg) : '—';
   const latestFat = latest?.bodyFatPercent ? formatFaNumber(latest.bodyFatPercent) : '—';
   const latestMuscle = latest?.muscleMassKg ? formatFaNumber(latest.muscleMassKg) : '—';
 
   const exportReports = () => {
-    const rows = isDemoMode
-      ? bodyProgress.map((item) => [item.date, item.weight, item.fat, item.muscle, item.waist])
-      : reports.map((report) => [
-          formatFaDate(report.recordedAt),
-          report.weightKg ?? '',
-          report.bodyFatPercent ?? '',
-          report.muscleMassKg ?? '',
-          report.waistCm ?? '',
-        ]);
+    const rows = reports.map((report) => [
+      formatFaDate(report.recordedAt),
+      report.weightKg ?? '',
+      report.bodyFatPercent ?? '',
+      report.muscleMassKg ?? '',
+      report.waistCm ?? '',
+    ]);
     const csv = [['تاریخ', 'وزن', 'درصد چربی', 'توده عضلانی', 'دور کمر'], ...rows]
       .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(','))
       .join('\n');
@@ -158,30 +152,27 @@ export function CoachReportsPage() {
   const saveReport = async (form: ReportFormValues) => {
     setStatus('');
     try {
-      if (!isDemoMode) {
-        await apiFetch('/api/coach/reports', {
-          method: 'POST',
-          demoRole: 'coach',
-          body: JSON.stringify({
-            studentId: form.studentId,
-            recordedAt: form.recordedAt,
-            weightKg: numberOrNull(form.weightKg),
-            heightCm: null,
-            bodyFatPercent: numberOrNull(form.bodyFatPercent),
-            muscleMassKg: numberOrNull(form.muscleMassKg),
-            waistCm: numberOrNull(form.waistCm),
-            chestCm: numberOrNull(form.chestCm),
-            armRightCm: numberOrNull(form.armRightCm),
-            thighRightCm: null,
-            notes: form.notes,
-          }),
-        });
-        await queryClient.invalidateQueries({ queryKey: ['coach', 'reports', form.studentId] });
-      }
+      await apiFetch('/api/coach/reports', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: form.studentId,
+          recordedAt: form.recordedAt,
+          weightKg: numberOrNull(form.weightKg),
+          heightCm: null,
+          bodyFatPercent: numberOrNull(form.bodyFatPercent),
+          muscleMassKg: numberOrNull(form.muscleMassKg),
+          waistCm: numberOrNull(form.waistCm),
+          chestCm: numberOrNull(form.chestCm),
+          armRightCm: numberOrNull(form.armRightCm),
+          thighRightCm: null,
+          notes: form.notes,
+        }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ['coach', 'reports', form.studentId] });
       setStudentId(form.studentId);
       reset({ ...emptyForm, studentId: form.studentId });
       setReportOpen(false);
-      setStatus(isDemoMode ? 'گزارش نمایشی ثبت شد.' : 'گزارش جسمانی با موفقیت ثبت شد.');
+      setStatus('گزارش جسمانی با موفقیت ثبت شد.');
     } catch (error) {
       setError('root', {
         type: 'server',
@@ -342,25 +333,25 @@ export function CoachReportsPage() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="وزن فعلی"
-          value={isDemoMode ? '۷۹٫۲ کیلو' : `${latestWeight} کیلو`}
+          value={`${latestWeight} کیلو`}
           caption="آخرین ثبت"
           icon={Scale}
         />
         <MetricCard
           label="درصد چربی"
-          value={isDemoMode ? '۱۹٫۸٪' : `${latestFat}٪`}
+          value={`${latestFat}٪`}
           caption="آخرین ثبت"
           icon={TrendingDown}
         />
         <MetricCard
           label="توده عضلانی"
-          value={isDemoMode ? '۵۹٫۴ کیلو' : `${latestMuscle} کیلو`}
+          value={`${latestMuscle} کیلو`}
           caption="آخرین ثبت"
           icon={Activity}
         />
         <MetricCard
           label="تعداد گزارش‌ها"
-          value={isDemoMode ? '۵' : formatFaNumber(reports.length)}
+          value={formatFaNumber(reports.length)}
           caption="کل سوابق"
           icon={CalendarDays}
         />
@@ -372,38 +363,24 @@ export function CoachReportsPage() {
           <CardHeader>
             <CardTitle>آخرین وضعیت ثبت‌شده</CardTitle>
             <CardDescription>
-              {isDemoMode
-                ? 'پنجم مرداد ۱۴۰۵'
-                : latest
-                  ? formatFaDate(latest.recordedAt)
-                  : 'گزارشی ثبت نشده'}
+              {latest ? formatFaDate(latest.recordedAt) : 'گزارشی ثبت نشده'}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {(isDemoMode
-              ? ([
-                  ['وزن', '۷۹٫۲ کیلوگرم'],
-                  ['دور کمر', '۹۰٫۴ سانتی‌متر'],
-                  ['دور سینه', '۱۰۲ سانتی‌متر'],
-                  ['دور بازو', '۳۶٫۱ سانتی‌متر'],
-                  ['درصد چربی', '۱۹٫۸ درصد'],
-                ] as const)
-              : ([
-                  ['وزن', latest?.weightKg ? `${formatFaNumber(latest.weightKg)} کیلوگرم` : '—'],
-                  ['دور کمر', latest?.waistCm ? `${formatFaNumber(latest.waistCm)} سانتی‌متر` : '—'],
-                  [
-                    'دور سینه',
-                    latest?.chestCm ? `${formatFaNumber(latest.chestCm)} سانتی‌متر` : '—',
-                  ],
-                  [
-                    'دور بازو',
-                    latest?.armRightCm ? `${formatFaNumber(latest.armRightCm)} سانتی‌متر` : '—',
-                  ],
-                  [
-                    'درصد چربی',
-                    latest?.bodyFatPercent ? `${formatFaNumber(latest.bodyFatPercent)} درصد` : '—',
-                  ],
-                ] as const)
+            {(
+              [
+                ['وزن', latest?.weightKg ? `${formatFaNumber(latest.weightKg)} کیلوگرم` : '—'],
+                ['دور کمر', latest?.waistCm ? `${formatFaNumber(latest.waistCm)} سانتی‌متر` : '—'],
+                ['دور سینه', latest?.chestCm ? `${formatFaNumber(latest.chestCm)} سانتی‌متر` : '—'],
+                [
+                  'دور بازو',
+                  latest?.armRightCm ? `${formatFaNumber(latest.armRightCm)} سانتی‌متر` : '—',
+                ],
+                [
+                  'درصد چربی',
+                  latest?.bodyFatPercent ? `${formatFaNumber(latest.bodyFatPercent)} درصد` : '—',
+                ],
+              ] as const
             ).map(([label, value]) => (
               <div
                 key={label}

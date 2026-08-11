@@ -6,8 +6,7 @@ import { MetricCard } from '@/components/metric-card';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { apiFetch, isDemoMode } from '@/lib/api';
-import { bodyProgress } from '@/lib/demo-data';
+import { apiFetch } from '@/lib/api';
 import { formatFaDate, formatFaNumber } from '@/lib/utils';
 
 type BodyReport = {
@@ -22,14 +21,11 @@ type BodyReport = {
 export function StudentProgressPage() {
   const reportsQuery = useQuery({
     queryKey: ['student', 'reports'],
-    queryFn: () =>
-      apiFetch<{ data: BodyReport[] }>('/api/student/reports', { demoRole: 'student' }),
-    enabled: !isDemoMode,
+    queryFn: () => apiFetch<{ data: BodyReport[] }>('/api/student/reports'),
   });
 
   const reports = reportsQuery.data?.data ?? [];
   const chartData = useMemo(() => {
-    if (isDemoMode) return bodyProgress;
     return reports.map((report) => ({
       date: new Intl.DateTimeFormat('fa-IR-u-ca-persian', { month: 'short' }).format(
         new Date(report.recordedAt),
@@ -41,8 +37,8 @@ export function StudentProgressPage() {
     }));
   }, [reports]);
 
-  const latest = isDemoMode ? null : reports.at(-1);
-  const first = isDemoMode ? null : reports[0];
+  const latest = reports.at(-1);
+  const first = reports[0];
   const difference = (
     latestValue: string | null | undefined,
     firstValue: string | null | undefined,
@@ -68,13 +64,7 @@ export function StudentProgressPage() {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="وزن فعلی"
-          value={
-            isDemoMode
-              ? '۷۹٫۲ کیلو'
-              : latest?.weightKg
-                ? `${formatFaNumber(latest.weightKg)} کیلو`
-                : '—'
-          }
+          value={latest?.weightKg ? `${formatFaNumber(latest.weightKg)} کیلو` : '—'}
           caption="از اولین ثبت"
           icon={Scale}
           trend={
@@ -88,13 +78,7 @@ export function StudentProgressPage() {
         />
         <MetricCard
           label="درصد چربی"
-          value={
-            isDemoMode
-              ? '۱۹٫۸٪'
-              : latest?.bodyFatPercent
-                ? `${formatFaNumber(latest.bodyFatPercent)}٪`
-                : '—'
-          }
+          value={latest?.bodyFatPercent ? `${formatFaNumber(latest.bodyFatPercent)}٪` : '—'}
           caption="از اولین ثبت"
           icon={TrendingDown}
           trend={
@@ -108,13 +92,7 @@ export function StudentProgressPage() {
         />
         <MetricCard
           label="دور کمر"
-          value={
-            isDemoMode
-              ? '۹۰٫۴ سانتی‌متر'
-              : latest?.waistCm
-                ? `${formatFaNumber(latest.waistCm)} سانتی‌متر`
-                : '—'
-          }
+          value={latest?.waistCm ? `${formatFaNumber(latest.waistCm)} سانتی‌متر` : '—'}
           caption="از اولین ثبت"
           icon={Ruler}
           trend={
@@ -128,7 +106,7 @@ export function StudentProgressPage() {
         />
         <MetricCard
           label="تعداد گزارش‌ها"
-          value={isDemoMode ? '۵' : formatFaNumber(reports.length)}
+          value={formatFaNumber(reports.length)}
           caption="ثبت‌شده توسط مربی"
           icon={CalendarCheck2}
         />
@@ -143,48 +121,22 @@ export function StudentProgressPage() {
           <CardHeader>
             <CardTitle>خلاصه آخرین گزارش</CardTitle>
             <CardDescription>
-              {isDemoMode
-                ? 'پنجم مرداد ۱۴۰۵'
-                : latest
-                  ? formatFaDate(latest.recordedAt)
-                  : 'بدون گزارش'}
+              {latest ? formatFaDate(latest.recordedAt) : 'بدون گزارش'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {(
               [
-                [
-                  'وزن',
-                  isDemoMode
-                    ? '۷۹٫۲ کیلو'
-                    : latest?.weightKg
-                      ? `${formatFaNumber(latest.weightKg)} کیلو`
-                      : '—',
-                ],
+                ['وزن', latest?.weightKg ? `${formatFaNumber(latest.weightKg)} کیلو` : '—'],
                 [
                   'درصد چربی',
-                  isDemoMode
-                    ? '۱۹٫۸٪'
-                    : latest?.bodyFatPercent
-                      ? `${formatFaNumber(latest.bodyFatPercent)}٪`
-                      : '—',
+                  latest?.bodyFatPercent ? `${formatFaNumber(latest.bodyFatPercent)}٪` : '—',
                 ],
                 [
                   'توده عضلانی',
-                  isDemoMode
-                    ? '۵۹٫۴ کیلو'
-                    : latest?.muscleMassKg
-                      ? `${formatFaNumber(latest.muscleMassKg)} کیلو`
-                      : '—',
+                  latest?.muscleMassKg ? `${formatFaNumber(latest.muscleMassKg)} کیلو` : '—',
                 ],
-                [
-                  'دور کمر',
-                  isDemoMode
-                    ? '۹۰٫۴ سانت'
-                    : latest?.waistCm
-                      ? `${formatFaNumber(latest.waistCm)} سانت`
-                      : '—',
-                ],
+                ['دور کمر', latest?.waistCm ? `${formatFaNumber(latest.waistCm)} سانت` : '—'],
               ] as const
             ).map(([title, value]) => (
               <div key={title} className="flex items-center gap-3 rounded-xl border p-3">
@@ -218,28 +170,18 @@ export function StudentProgressPage() {
               </tr>
             </thead>
             <tbody>
-              {isDemoMode
-                ? [...bodyProgress].reverse().map((row) => (
-                    <tr key={row.date} className="border-b last:border-0">
-                      <td className="py-4 font-bold">{row.date} ۱۴۰۵</td>
-                      <td>{row.weight} kg</td>
-                      <td>{row.fat}%</td>
-                      <td>{row.muscle} kg</td>
-                      <td>{row.waist} cm</td>
-                    </tr>
-                  ))
-                : [...reports].reverse().map((row) => (
-                    <tr key={row.id} className="border-b last:border-0">
-                      <td className="py-4 font-bold">{formatFaDate(row.recordedAt)}</td>
-                      <td>{row.weightKg ? `${formatFaNumber(row.weightKg)} kg` : '—'}</td>
-                      <td>{row.bodyFatPercent ? `${formatFaNumber(row.bodyFatPercent)}%` : '—'}</td>
-                      <td>{row.muscleMassKg ? `${formatFaNumber(row.muscleMassKg)} kg` : '—'}</td>
-                      <td>{row.waistCm ? `${formatFaNumber(row.waistCm)} cm` : '—'}</td>
-                    </tr>
-                  ))}
+              {[...reports].reverse().map((row) => (
+                <tr key={row.id} className="border-b last:border-0">
+                  <td className="py-4 font-bold">{formatFaDate(row.recordedAt)}</td>
+                  <td>{row.weightKg ? `${formatFaNumber(row.weightKg)} kg` : '—'}</td>
+                  <td>{row.bodyFatPercent ? `${formatFaNumber(row.bodyFatPercent)}%` : '—'}</td>
+                  <td>{row.muscleMassKg ? `${formatFaNumber(row.muscleMassKg)} kg` : '—'}</td>
+                  <td>{row.waistCm ? `${formatFaNumber(row.waistCm)} cm` : '—'}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
-          {!isDemoMode && !reports.length && !reportsQuery.isLoading && (
+          {!reports.length && !reportsQuery.isLoading && (
             <div className="py-10 text-center text-sm text-muted-foreground">
               هنوز گزارشی برای شما ثبت نشده است.
             </div>

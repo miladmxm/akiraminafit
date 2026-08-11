@@ -11,7 +11,6 @@
 - اجرای روزانه برنامه به‌صورت Todo و ثبت عملکرد واقعی
 - صف IndexedDB برای همگام‌سازی Todo در حالت آفلاین
 - ثبت تاریخچه وضعیت جسمانی و نمودارهای پیشرفت
-- حالت Demo برای مشاهده فوری رابط بدون دیتابیس
 - PostgreSQL، Drizzle ORM، migration و seed آماده
 
 ## اجرای سریع
@@ -33,17 +32,6 @@ npm run dev
 - وب: `http://localhost:5173`
 - API: `http://localhost:3000`
 - پنل MinIO: `http://localhost:9001`
-
-## حالت Demo و حالت واقعی
-
-در `.env.example` رابط در حالت Demo قرار دارد. برای اتصال رابط به API و Better Auth مقدار زیر را
-تغییر دهید:
-
-```env
-VITE_DEMO_MODE=false
-```
-
-برای production هر دو مقدار `VITE_DEMO_MODE` و `DEMO_MODE` باید `false` باشند.
 
 ## ساخت حساب مربی اصلی
 

@@ -1,6 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL ?? '';
 export const apiUrl = (path: string) => `${API_URL}${path}`;
-export const isDemoMode = import.meta.env.VITE_DEMO_MODE !== 'false';
 
 export class ApiError extends Error {
   constructor(
@@ -11,13 +10,9 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiFetch<T>(
-  path: string,
-  options: RequestInit & { demoRole?: 'coach' | 'student' } = {},
-): Promise<T> {
+export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers);
   if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  if (isDemoMode && options.demoRole) headers.set('X-Demo-Role', options.demoRole);
 
   const response = await fetch(apiUrl(path), {
     ...options,

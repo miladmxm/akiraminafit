@@ -1,8 +1,7 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { weeklyAdherence } from '@/lib/demo-data';
 
-export function AdherenceChart() {
+export function AdherenceChart({ data }: { data: Array<{ day: string; value: number }> }) {
   return (
     <Card>
       <CardHeader>
@@ -12,7 +11,7 @@ export function AdherenceChart() {
       <CardContent>
         <div className="h-64 w-full" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={weeklyAdherence} margin={{ left: -20, right: 8 }}>
+            <BarChart data={data} margin={{ left: -20, right: 8 }}>
               <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
               <XAxis
                 dataKey="day"
@@ -45,6 +44,11 @@ export function AdherenceChart() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        {!data.length && (
+          <p className="mt-3 text-center text-sm text-muted-foreground">
+            پس از ثبت تمرین شاگردان، داده پایبندی اینجا نمایش داده می‌شود.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

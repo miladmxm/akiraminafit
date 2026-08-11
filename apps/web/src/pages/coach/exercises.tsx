@@ -1,13 +1,16 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { valibotResolver } from '@hookform/resolvers/valibot';
-import { Camera, Filter, MoreVertical, Play, Plus, Upload } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Camera, Edit3, Filter, Images, MoreVertical, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { useForm, type UseFormReturn } from 'react-hook-form';
+import { Link } from 'react-router-dom';
+import { ExerciseFormFields } from '@/components/exercise-form-fields';
 import { ExerciseImage } from '@/components/exercise-image';
+import { ExerciseMediaGallery } from '@/components/exercise-media-gallery';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogClose,
@@ -25,84 +28,157 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Field, FieldError, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
-import { apiFetch, isDemoMode } from '@/lib/api';
-import { demoExercises, type DemoExercise } from '@/lib/demo-data';
+import { apiFetch } from '@/lib/api';
+import {
+  type ExerciseMediaItem,
+  type ExerciseRecord,
+  uploadExerciseMedia,
+} from '@/lib/exercise-media';
 import { exerciseSchema, type ExerciseFormValues } from '@/lib/form-schemas';
 
 const groups = ['همه', 'سینه', 'پا', 'پشت', 'مرکزی', 'همسترینگ', 'سرشانه'];
 const difficultyLabel = { beginner: 'مبتدی', intermediate: 'متوسط', advanced: 'پیشرفته' } as const;
 
-type ApiExercise = {
-  id: string;
-  title: string;
-  description: string;
-  instructions: string;
-  muscleGroup: string;
-  equipment: string;
-  difficulty: keyof typeof difficultyLabel;
-  media: Array<{ id: string; mediaType: 'image' | 'video'; url: string }>;
+const emptyValues: ExerciseFormValues = {
+  title: '',
+  muscleGroup: '',
+  equipment: '',
+  description: '',
+  instructions: '',
+  difficulty: 'beginner',
+  files: [],
 };
 
-function toDemoExercise(item: ApiExercise): DemoExercise {
-  const image = item.media.find((media) => media.mediaType === 'image')?.url ?? '/pwa-512x512.png';
-  const video = item.media.find((media) => media.mediaType === 'video')?.url;
-  return {
-    id: item.id,
-    title: item.title,
-    muscleGroup: item.muscleGroup,
-    equipment: item.equipment,
-    difficulty: difficultyLabel[item.difficulty],
-    description: item.description,
-    instructions: item.instructions,
-    image,
-    ...(video ? { video } : {}),
-  };
+type ExerciseEditorProps = {
+  mode: 'create' | 'edit';
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  form: UseFormReturn<ExerciseFormValues>;
+  onSubmit: (values: ExerciseFormValues) => Promise<void>;
+  existingMedia?: ExerciseMediaItem[];
+};
+
+function ExerciseEditor({
+  mode,
+  open,
+  onOpenChange,
+  form,
+  onSubmit,
+  existingMedia = [],
+}: ExerciseEditorProps) {
+  const files = form.watch('files');
+  const isSubmitting = form.formState.isSubmitting;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {mode === 'create' && (
+        <DialogTrigger asChild>
+          <Button>
+            <Plus data-icon="inline-start" /> حرکت جدید
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col overflow-hidden p-0 sm:max-h-[min(48rem,calc(100dvh-2rem))] sm:max-w-2xl">
+        <DialogHeader className="mb-0 shrink-0 border-b p-5 pe-14">
+          <DialogTitle>{mode === 'create' ? 'تعریف حرکت تمرینی' : 'ویرایش حرکت'}</DialogTitle>
+          <DialogDescription>
+            {mode === 'create'
+              ? 'مشخصات حرکت و یک یا چند فایل آموزشی را ثبت کن.'
+              : 'متن، سطح سختی و فایل‌های جدید را به‌روز کن.'}
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          noValidate
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto p-5">
+            {mode === 'edit' && existingMedia.length > 0 && (
+              <Card className="mb-5">
+                <CardHeader>
+                  <CardTitle>فایل‌های فعلی</CardTitle>
+                  <CardDescription>
+                    {existingMedia.length} فایل از قبل به این حرکت متصل است.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ExerciseMediaGallery items={existingMedia} title={form.getValues('title')} />
+                </CardContent>
+              </Card>
+            )}
+            <ExerciseFormFields
+              idPrefix={mode === 'create' ? 'new-exercise' : 'edit-exercise'}
+              control={form.control}
+              register={form.register}
+              setValue={form.setValue}
+              errors={form.formState.errors}
+              files={files}
+            />
+          </div>
+          {form.formState.errors.root?.message && (
+            <FieldError className="shrink-0 border-t bg-destructive/5 px-4 py-3">
+              {form.formState.errors.root.message}
+            </FieldError>
+          )}
+          <DialogFooter className="shrink-0 items-stretch border-t bg-background p-4 sm:items-center">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isSubmitting}>
+                انصراف
+              </Button>
+            </DialogClose>
+            {mode === 'edit' && (
+              <Button type="button" variant="outline" asChild>
+                <Link to="/coach/media">
+                  <Images data-icon="inline-start" /> مدیریت مدیا
+                </Link>
+              </Button>
+            )}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <Spinner data-icon="inline-start" />
+              ) : mode === 'create' ? (
+                <Plus data-icon="inline-start" />
+              ) : (
+                <Edit3 data-icon="inline-start" />
+              )}
+              {isSubmitting
+                ? 'در حال ذخیره...'
+                : mode === 'create'
+                  ? 'افزودن به کتابخانه'
+                  : 'ذخیره تغییرات'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export function CoachExercisesPage() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [group, setGroup] = useState('همه');
-  const [demoItems, setDemoItems] = useState(demoExercises);
   const [notice, setNotice] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [selected, setSelected] = useState<DemoExercise | null>(null);
-  const {
-    control,
-    register,
-    handleSubmit,
-    reset,
-    setError,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<ExerciseFormValues>({
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const createForm = useForm<ExerciseFormValues>({
     resolver: valibotResolver(exerciseSchema),
-    defaultValues: {
-      title: '',
-      muscleGroup: '',
-      equipment: '',
-      description: '',
-      instructions: '',
-      file: null,
-    },
+    defaultValues: emptyValues,
   });
-  const file = watch('file');
+  const editForm = useForm<ExerciseFormValues>({
+    resolver: valibotResolver(exerciseSchema),
+    defaultValues: emptyValues,
+  });
 
   const exercisesQuery = useQuery({
     queryKey: ['coach', 'exercises'],
-    queryFn: () => apiFetch<{ data: ApiExercise[] }>('/api/coach/exercises', { demoRole: 'coach' }),
-    enabled: !isDemoMode,
+    queryFn: () => apiFetch<{ data: ExerciseRecord[] }>('/api/coach/exercises'),
   });
-
-  const items = useMemo(
-    () => (isDemoMode ? demoItems : (exercisesQuery.data?.data ?? []).map(toDemoExercise)),
-    [demoItems, exercisesQuery.data],
-  );
-
+  const items = exercisesQuery.data?.data ?? [];
   const filtered = useMemo(
     () =>
       items.filter(
@@ -110,88 +186,67 @@ export function CoachExercisesPage() {
       ),
     [group, items, query],
   );
+  const selected = items.find((item) => item.id === detailsId) ?? null;
+  const editing = items.find((item) => item.id === editingId) ?? null;
 
-  const resetForm = () => {
-    reset({
-      title: '',
-      muscleGroup: '',
-      equipment: '',
-      description: '',
-      instructions: '',
-      file: null,
-    });
-  };
+  const payload = (values: ExerciseFormValues) => ({
+    title: values.title,
+    muscleGroup: values.muscleGroup,
+    equipment: values.equipment || 'بدون وسیله',
+    description: values.description,
+    instructions: values.instructions,
+    difficulty: values.difficulty,
+  });
 
-  const addExercise = async ({ file, ...newExercise }: ExerciseFormValues) => {
+  const addExercise = async (values: ExerciseFormValues) => {
     try {
-      if (isDemoMode) {
-        const item: DemoExercise = {
-          id: crypto.randomUUID(),
-          title: newExercise.title,
-          muscleGroup: newExercise.muscleGroup,
-          equipment: newExercise.equipment || 'بدون وسیله',
-          description: newExercise.description,
-          instructions: newExercise.instructions,
-          difficulty: 'مبتدی',
-          image: file?.type.startsWith('image/') ? URL.createObjectURL(file) : '/pwa-512x512.png',
-          ...(file?.type.startsWith('video/') ? { video: URL.createObjectURL(file) } : {}),
-        };
-        setDemoItems((current) => [item, ...current]);
-      } else {
-        const created = await apiFetch<{ data: ApiExercise }>('/api/coach/exercises', {
-          method: 'POST',
-          demoRole: 'coach',
-          body: JSON.stringify({
-            title: newExercise.title,
-            muscleGroup: newExercise.muscleGroup,
-            equipment: newExercise.equipment || 'بدون وسیله',
-            description: newExercise.description,
-            instructions: newExercise.instructions,
-            difficulty: 'beginner',
-          }),
-        });
-
-        if (file) {
-          const presigned = await apiFetch<{
-            data: { uploadUrl: string; storageKey: string; publicUrl: string };
-          }>('/api/uploads/presign', {
-            method: 'POST',
-            demoRole: 'coach',
-            body: JSON.stringify({
-              fileName: file.name,
-              contentType: file.type,
-              size: file.size,
-              entityType: 'exercise',
-              entityId: created.data.id,
-            }),
-          });
-          const uploadResponse = await fetch(presigned.data.uploadUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type },
-            body: file,
-          });
-          if (!uploadResponse.ok) throw new Error('آپلود فایل ناموفق بود.');
-          await apiFetch('/api/uploads/exercise-media', {
-            method: 'POST',
-            demoRole: 'coach',
-            body: JSON.stringify({
-              exerciseId: created.data.id,
-              storageKey: presigned.data.storageKey,
-              url: presigned.data.publicUrl,
-              mimeType: file.type,
-              fileSize: file.size,
-            }),
-          });
-        }
-        await queryClient.invalidateQueries({ queryKey: ['coach', 'exercises'] });
-      }
-      resetForm();
+      const created = await apiFetch<{ data: ExerciseRecord }>('/api/coach/exercises', {
+        method: 'POST',
+        body: JSON.stringify(payload(values)),
+      });
+      await uploadExerciseMedia(created.data.id, values.files);
+      await queryClient.invalidateQueries({ queryKey: ['coach', 'exercises'] });
+      createForm.reset(emptyValues);
       setCreateOpen(false);
-      setNotice('حرکت با موفقیت به کتابخانه اضافه شد.');
+      setNotice('حرکت و فایل‌های آموزشی با موفقیت ذخیره شدند.');
     } catch (error) {
-      setError('root', {
+      createForm.setError('root', {
         type: 'server',
         message: error instanceof Error ? error.message : 'ذخیره حرکت ناموفق بود.',
+      });
+    }
+  };
+
+  const openEdit = (exercise: ExerciseRecord) => {
+    editForm.reset({
+      title: exercise.title,
+      muscleGroup: exercise.muscleGroup,
+      equipment: exercise.equipment,
+      description: exercise.description,
+      instructions: exercise.instructions,
+      difficulty: exercise.difficulty,
+      files: [],
+    });
+    setDetailsId(null);
+    setEditingId(exercise.id);
+  };
+
+  const editExercise = async (values: ExerciseFormValues) => {
+    if (!editing) return;
+    try {
+      await apiFetch(`/api/coach/exercises/${editing.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload(values)),
+      });
+      await uploadExerciseMedia(editing.id, values.files);
+      await queryClient.invalidateQueries({ queryKey: ['coach', 'exercises'] });
+      setEditingId(null);
+      editForm.reset(emptyValues);
+      setNotice('تغییرات حرکت با موفقیت ذخیره شد.');
+    } catch (error) {
+      editForm.setError('root', {
+        type: 'server',
+        message: error instanceof Error ? error.message : 'ویرایش حرکت ناموفق بود.',
       });
     }
   };
@@ -200,158 +255,33 @@ export function CoachExercisesPage() {
     <>
       <PageHeader
         title="کتابخانه حرکات"
-        description="حرکات را یک‌بار تعریف کن و در برنامه‌های مختلف دوباره استفاده کن."
+        description="حرکات را یک‌بار تعریف کن، ویرایش کن و در برنامه‌های مختلف دوباره استفاده کن."
         action={
-          <Dialog
+          <ExerciseEditor
+            mode="create"
             open={createOpen}
             onOpenChange={(open) => {
               setCreateOpen(open);
-              if (!open) resetForm();
+              if (!open) createForm.reset(emptyValues);
             }}
-          >
-            <DialogTrigger asChild>
-              <Button>
-                <Plus data-icon="inline-start" /> حرکت جدید
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col overflow-hidden p-0 sm:max-h-[min(46rem,calc(100dvh-2rem))] sm:max-w-2xl">
-              <DialogHeader className="mb-0 border-b p-5 pe-14">
-                <DialogTitle>تعریف حرکت تمرینی</DialogTitle>
-                <DialogDescription>
-                  عنوان، توضیحات اجرای صحیح و فایل آموزشی حرکت را ثبت کن.
-                </DialogDescription>
-              </DialogHeader>
-              <form className="contents" noValidate onSubmit={handleSubmit(addExercise)}>
-                <div className="min-h-0 flex-1 overflow-y-auto p-5">
-                  <FieldGroup className="grid gap-4 sm:grid-cols-2">
-                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.title)}>
-                      <FieldLabel htmlFor="new-exercise-title">عنوان حرکت</FieldLabel>
-                      <Input
-                        id="new-exercise-title"
-                        placeholder="مثلاً پرس سینه دمبل"
-                        aria-invalid={Boolean(errors.title)}
-                        autoFocus
-                        {...register('title')}
-                      />
-                      <FieldError>{errors.title?.message}</FieldError>
-                    </Field>
-                    <Field data-invalid={Boolean(errors.muscleGroup)}>
-                      <FieldLabel htmlFor="new-exercise-muscle">گروه عضلانی</FieldLabel>
-                      <Input
-                        id="new-exercise-muscle"
-                        placeholder="سینه"
-                        aria-invalid={Boolean(errors.muscleGroup)}
-                        {...register('muscleGroup')}
-                      />
-                      <FieldError>{errors.muscleGroup?.message}</FieldError>
-                    </Field>
-                    <Field data-invalid={Boolean(errors.equipment)}>
-                      <FieldLabel htmlFor="new-exercise-equipment">تجهیزات</FieldLabel>
-                      <Input
-                        id="new-exercise-equipment"
-                        placeholder="دمبل و نیمکت"
-                        aria-invalid={Boolean(errors.equipment)}
-                        {...register('equipment')}
-                      />
-                      <FieldError>{errors.equipment?.message}</FieldError>
-                    </Field>
-                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.description)}>
-                      <FieldLabel htmlFor="new-exercise-description">توضیح کوتاه</FieldLabel>
-                      <Textarea
-                        id="new-exercise-description"
-                        placeholder="هدف حرکت و عضلات درگیر را کوتاه بنویس."
-                        aria-invalid={Boolean(errors.description)}
-                        {...register('description')}
-                      />
-                      <FieldError>{errors.description?.message}</FieldError>
-                    </Field>
-                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.instructions)}>
-                      <FieldLabel htmlFor="new-exercise-instructions">نحوه اجرای صحیح</FieldLabel>
-                      <Textarea
-                        id="new-exercise-instructions"
-                        placeholder="مراحل اجرا و نکات ایمنی حرکت را بنویس."
-                        aria-invalid={Boolean(errors.instructions)}
-                        {...register('instructions')}
-                      />
-                      <FieldError>{errors.instructions?.message}</FieldError>
-                    </Field>
-                    <Field className="sm:col-span-2" data-invalid={Boolean(errors.file)}>
-                      <FieldLabel htmlFor="new-exercise-file">فایل آموزشی (اختیاری)</FieldLabel>
-                      <label
-                        htmlFor="new-exercise-file"
-                        className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed bg-muted/50 p-6 text-center transition-colors hover:border-primary hover:bg-primary/5"
-                      >
-                        <Upload className="size-7 text-primary" />
-                        <span className="text-sm font-bold">
-                          {file ? 'برای تغییر فایل دوباره انتخاب کن' : 'تصویر یا ویدیو انتخاب کن'}
-                        </span>
-                        {file && (
-                          <Badge variant="secondary" className="max-w-full truncate" dir="ltr">
-                            {file.name}
-                          </Badge>
-                        )}
-                      </label>
-                      <Controller
-                        control={control}
-                        name="file"
-                        render={({ field: { onChange, ref } }) => (
-                          <Input
-                            id="new-exercise-file"
-                            ref={ref}
-                            className="sr-only"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-                            aria-invalid={Boolean(errors.file)}
-                            onChange={(event) => onChange(event.target.files?.[0] ?? null)}
-                          />
-                        )}
-                      />
-                      <FieldDescription>
-                        JPG، PNG، WebP، MP4 یا WebM تا ۱۰۰ مگابایت
-                      </FieldDescription>
-                      <FieldError>{errors.file?.message}</FieldError>
-                    </Field>
-                  </FieldGroup>
-                </div>
-                {errors.root?.message && (
-                  <FieldError className="border-t bg-destructive/5 px-4 py-3">
-                    {errors.root.message}
-                  </FieldError>
-                )}
-                <DialogFooter className="items-stretch border-t bg-background p-4 sm:items-center">
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline" disabled={isSubmitting}>
-                      انصراف
-                    </Button>
-                  </DialogClose>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <Spinner data-icon="inline-start" />
-                    ) : (
-                      <Plus data-icon="inline-start" />
-                    )}
-                    {isSubmitting ? 'در حال ذخیره...' : 'افزودن به کتابخانه'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+            form={createForm}
+            onSubmit={addExercise}
+          />
         }
       />
 
       {notice && (
-        <div
+        <p
           className="mb-5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-bold text-primary"
           role="status"
         >
           {notice}
-        </div>
+        </p>
       )}
-
       {exercisesQuery.isError && (
-        <div className="mb-5 rounded-xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">
+        <p className="mb-5 rounded-xl bg-destructive/10 px-4 py-3 text-sm font-bold text-destructive">
           {exercisesQuery.error.message}
-        </div>
+        </p>
       )}
 
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -382,64 +312,65 @@ export function CoachExercisesPage() {
       </div>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((exercise) => (
-          <Card
-            key={exercise.id}
-            className="overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg"
-          >
-            <div className="relative aspect-[16/9] overflow-hidden bg-muted">
-              <ExerciseImage
-                src={exercise.image}
-                alt={exercise.title}
-                className="size-full object-cover transition duration-500 hover:scale-105"
-              />
-              <div className="absolute inset-x-3 top-3 flex items-center justify-between">
-                <Badge>{exercise.muscleGroup}</Badge>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  onClick={() => setSelected(exercise)}
-                  aria-label={`جزئیات ${exercise.title}`}
-                >
-                  <MoreVertical />
-                </Button>
-              </div>
-              {exercise.video && (
-                <a
-                  href={exercise.video}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="absolute inset-0 grid place-items-center bg-[var(--overlay)]"
-                >
-                  <span className="grid size-12 place-items-center rounded-full bg-background/90 text-primary shadow-xl">
-                    <Play className="size-5 fill-current" />
-                  </span>
-                </a>
-              )}
-            </div>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-black">{exercise.title}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {exercise.equipment} • {exercise.difficulty}
-                  </p>
+        {filtered.map((exercise) => {
+          const cover =
+            exercise.media.find((media) => media.mediaType === 'image')?.url ?? '/pwa-512x512.png';
+          return (
+            <Card
+              key={exercise.id}
+              className="overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <div className="relative aspect-video overflow-hidden bg-muted">
+                <ExerciseImage
+                  src={cover}
+                  alt={exercise.title}
+                  className="size-full object-cover transition duration-500 hover:scale-105"
+                />
+                <div className="absolute inset-x-3 top-3 flex items-center justify-between">
+                  <Badge>{exercise.muscleGroup}</Badge>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    onClick={() => setDetailsId(exercise.id)}
+                    aria-label={`جزئیات ${exercise.title}`}
+                  >
+                    <MoreVertical />
+                  </Button>
                 </div>
-                <Camera className="size-5 text-primary" />
               </div>
-              <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
-                {exercise.description || 'بدون توضیح'}
-              </p>
-              <Button
-                className="mt-4 w-full"
-                variant="outline"
-                onClick={() => setSelected(exercise)}
-              >
-                مشاهده جزئیات
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle>{exercise.title}</CardTitle>
+                    <CardDescription>
+                      {exercise.equipment} • {difficultyLabel[exercise.difficulty]}
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary">
+                    <Camera className="me-1 size-3" /> {exercise.media.length}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">
+                  {exercise.description || 'بدون توضیح'}
+                </p>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    className="flex-1"
+                    variant="outline"
+                    onClick={() => setDetailsId(exercise.id)}
+                  >
+                    مشاهده
+                  </Button>
+                  <Button variant="outline" onClick={() => openEdit(exercise)}>
+                    <Edit3 data-icon="inline-start" /> ویرایش
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </section>
 
       {!filtered.length && !exercisesQuery.isLoading && (
@@ -454,23 +385,19 @@ export function CoachExercisesPage() {
         </Empty>
       )}
 
-      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <DialogContent className="sm:max-w-xl">
+      <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setDetailsId(null)}>
+        <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>{selected?.title}</DialogTitle>
             <DialogDescription>
               {selected
-                ? `${selected.muscleGroup} • ${selected.equipment} • ${selected.difficulty}`
+                ? `${selected.muscleGroup} • ${selected.equipment} • ${difficultyLabel[selected.difficulty]}`
                 : ''}
             </DialogDescription>
           </DialogHeader>
           {selected && (
-            <div className="flex flex-col gap-4">
-              <ExerciseImage
-                src={selected.image}
-                alt={selected.title}
-                className="aspect-video w-full rounded-xl object-cover"
-              />
+            <div className="flex flex-col gap-5">
+              <ExerciseMediaGallery items={selected.media} title={selected.title} />
               <div>
                 <h3 className="text-sm font-bold">توضیح حرکت</h3>
                 <p className="mt-1 text-sm leading-7 text-muted-foreground">
@@ -483,17 +410,29 @@ export function CoachExercisesPage() {
                   {selected.instructions || 'راهنمایی ثبت نشده است.'}
                 </p>
               </div>
-              {selected.video && (
-                <Button asChild>
-                  <a href={selected.video} target="_blank" rel="noreferrer">
-                    <Play data-icon="inline-start" /> پخش ویدیوی آموزشی
-                  </a>
+              <DialogFooter>
+                <Button onClick={() => openEdit(selected)}>
+                  <Edit3 data-icon="inline-start" /> ویرایش حرکت
                 </Button>
-              )}
+              </DialogFooter>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      <ExerciseEditor
+        mode="edit"
+        open={Boolean(editing)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingId(null);
+            editForm.reset(emptyValues);
+          }
+        }}
+        form={editForm}
+        onSubmit={editExercise}
+        existingMedia={editing?.media ?? []}
+      />
     </>
   );
 }

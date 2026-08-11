@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { authClient } from '@/lib/auth-client';
-import { isDemoMode } from '@/lib/api';
 import { loginSchema, type LoginFormValues } from '@/lib/form-schemas';
 import { setStoredRole } from '@/lib/session-store';
 
@@ -24,11 +23,6 @@ export function LoginPage() {
     resolver: valibotResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
-
-  const enterDemo = (role: 'coach' | 'student') => {
-    setStoredRole(role);
-    void navigate(role === 'coach' ? '/coach' : '/student');
-  };
 
   const login = async ({ email, password }: LoginFormValues) => {
     const result = await authClient.signIn.email({ email, password });
@@ -133,22 +127,6 @@ export function LoginPage() {
                   </Button>
                 </FieldGroup>
               </form>
-
-              {isDemoMode && (
-                <div className="mt-6 border-t pt-6">
-                  <p className="mb-3 text-center text-xs font-bold text-muted-foreground">
-                    مشاهده فوری نسخه نمایشی
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button variant="outline" onClick={() => enterDemo('coach')}>
-                      ورود مربی
-                    </Button>
-                    <Button variant="secondary" onClick={() => enterDemo('student')}>
-                      ورود شاگرد
-                    </Button>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
           <p className="mt-5 text-center text-xs leading-6 text-muted-foreground">

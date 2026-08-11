@@ -45,20 +45,29 @@ export const exerciseSchema = v.object({
   equipment: optionalText,
   description: optionalText,
   instructions: optionalText,
-  file: v.pipe(
-    v.nullable(v.instance(File, 'فایل انتخاب‌شده معتبر نیست.')),
+  difficulty: v.union([v.literal('beginner'), v.literal('intermediate'), v.literal('advanced')]),
+  files: v.pipe(
+    v.array(v.instance(File, 'فایل انتخاب‌شده معتبر نیست.')),
+    v.maxLength(10, 'در هر مرحله حداکثر ۱۰ فایل انتخاب کن.'),
     v.check(
-      (file) => !file || exerciseMediaTypes.includes(file.type),
-      'فرمت فایل باید JPG، PNG، WebP، MP4 یا WebM باشد.',
+      (files) => files.every((file) => exerciseMediaTypes.includes(file.type)),
+      'فرمت فایل‌ها باید JPG، PNG، WebP، MP4 یا WebM باشد.',
     ),
     v.check(
-      (file) => !file || file.size <= 100 * 1024 * 1024,
-      'حجم فایل نباید بیشتر از ۱۰۰ مگابایت باشد.',
+      (files) => files.every((file) => file.size <= 100 * 1024 * 1024),
+      'حجم هر فایل نباید بیشتر از ۱۰۰ مگابایت باشد.',
     ),
   ),
 });
 
 export type ExerciseFormValues = v.InferInput<typeof exerciseSchema>;
+
+export const mediaUploadSchema = v.object({
+  exerciseId: requiredText('حرکت مرتبط را انتخاب کن.'),
+  files: v.pipe(exerciseSchema.entries.files, v.minLength(1, 'حداقل یک تصویر یا ویدیو انتخاب کن.')),
+});
+
+export type MediaUploadFormValues = v.InferInput<typeof mediaUploadSchema>;
 
 export const reportSchema = v.object({
   studentId: requiredText('ابتدا شاگرد را انتخاب کن.'),

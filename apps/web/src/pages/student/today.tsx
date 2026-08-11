@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { ExerciseImage } from '@/components/exercise-image';
+import { ExerciseMediaGallery } from '@/components/exercise-media-gallery';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,13 +32,11 @@ import { Field, FieldError } from '@/components/ui/field';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { apiFetch, apiUrl, isDemoMode } from '@/lib/api';
-import { todayWorkout, type DemoWorkoutItem } from '@/lib/demo-data';
+import { apiFetch, apiUrl } from '@/lib/api';
+import type { ExerciseMediaItem } from '@/lib/exercise-media';
 import { workoutNoteSchema, type WorkoutNoteFormValues } from '@/lib/form-schemas';
 import { enqueueMutation } from '@/lib/offline-queue';
 import { cn, formatFaDate, formatFaNumber, percent } from '@/lib/utils';
-
-const STORAGE_KEY = 'fitflow-today-completed';
 
 type TodayApiResponse = {
   data: null | {
@@ -63,18 +61,21 @@ type TodayApiResponse = {
   message?: string;
 };
 
-type DisplayWorkoutItem = DemoWorkoutItem & { video?: string };
-
-function readCompleted(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as string[];
-  } catch {
-    return [];
-  }
-}
+type DisplayWorkoutItem = {
+  id: string;
+  title: string;
+  description: string;
+  sets: number;
+  reps: string;
+  rest: number;
+  weight: number;
+  muscleGroup: string;
+  image: string;
+  media: ExerciseMediaItem[];
+};
 
 export function StudentTodayPage() {
-  const [completed, setCompleted] = useState<string[]>(isDemoMode ? readCompleted() : []);
+  const [completed, setCompleted] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState('');
   const {
@@ -89,19 +90,15 @@ export function StudentTodayPage() {
 
   const todayQuery = useQuery({
     queryKey: ['student', 'workout', 'today'],
-    queryFn: () =>
-      apiFetch<TodayApiResponse>('/api/student/workouts/today', { demoRole: 'student' }),
-    enabled: !isDemoMode,
+    queryFn: () => apiFetch<TodayApiResponse>('/api/student/workouts/today'),
   });
 
   const apiData = todayQuery.data?.data ?? null;
   const workoutItems: DisplayWorkoutItem[] = useMemo(() => {
-    if (isDemoMode) return todayWorkout;
     return (apiData?.items ?? []).flatMap((item) => {
       if (!item.planned) return [];
       const image =
         item.media.find((media) => media.mediaType === 'image')?.url ?? '/pwa-512x512.png';
-      const video = item.media.find((media) => media.mediaType === 'video')?.url;
       return [
         {
           id: item.id,
@@ -113,14 +110,18 @@ export function StudentTodayPage() {
           weight: Number(item.planned.targetWeight ?? 0),
           muscleGroup: 'تمرین برنامه',
           image,
-          ...(video ? { video } : {}),
+          media: item.media.map((media, index) => ({
+            id: `${item.id}-media-${index}`,
+            mediaType: media.mediaType,
+            url: media.url,
+          })),
         },
       ];
     });
   }, [apiData]);
 
   useEffect(() => {
-    if (!isDemoMode && apiData) {
+    if (apiData) {
       setCompleted(apiData.items.filter((item) => item.isCompleted).map((item) => item.id));
       reset({ note: apiData.session.studentNote ?? '' });
     }
@@ -152,11 +153,6 @@ export function StudentTodayPage() {
     const next = isCompleted ? [...completed, id] : completed.filter((item) => item !== id);
     setCompleted(next);
 
-    if (isDemoMode) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      return;
-    }
-
     const sessionId = apiData?.session.id;
     if (!sessionId) return;
     const clientMutationId = crypto.randomUUID();
@@ -168,7 +164,6 @@ export function StudentTodayPage() {
     try {
       await apiFetch(`/api/student/workouts/sessions/${sessionId}/items/${id}`, {
         method: 'PATCH',
-        demoRole: 'student',
         body: JSON.stringify({ isCompleted, clientMutationId }),
       });
       setSyncStatus('عملکرد تمرین ذخیره شد.');
@@ -183,16 +178,11 @@ export function StudentTodayPage() {
   };
 
   const saveNote = async ({ note }: WorkoutNoteFormValues) => {
-    if (isDemoMode) {
-      setSyncStatus('یادداشت نمایشی ذخیره شد.');
-      return;
-    }
     const sessionId = apiData?.session.id;
     if (!sessionId) return;
     try {
       await apiFetch(`/api/student/workouts/sessions/${sessionId}`, {
         method: 'PATCH',
-        demoRole: 'student',
         body: JSON.stringify({ studentNote: note }),
       });
       setSyncStatus('یادداشت جلسه ذخیره شد.');
@@ -201,7 +191,7 @@ export function StudentTodayPage() {
     }
   };
 
-  if (!isDemoMode && todayQuery.isLoading) {
+  if (todayQuery.isLoading) {
     return (
       <div className="grid min-h-[60vh] place-items-center text-sm font-bold text-muted-foreground">
         در حال دریافت تمرین امروز...
@@ -209,7 +199,7 @@ export function StudentTodayPage() {
     );
   }
 
-  if (!isDemoMode && !apiData) {
+  if (!apiData) {
     return (
       <>
         <PageHeader
@@ -231,13 +221,10 @@ export function StudentTodayPage() {
     );
   }
 
-  const planTitle = isDemoMode
-    ? 'دوره افزایش قدرت - فاز اول'
-    : (apiData?.plan.title ?? 'برنامه فعال');
-  const dayTitle = isDemoMode ? 'جلسه تمام بدن A' : (apiData?.day.title ?? 'تمرین امروز');
-  const planDescription = isDemoMode
-    ? 'فرم صحیح از وزن سنگین مهم‌تر است. بین ست‌ها زمان استراحت را کامل رعایت کن.'
-    : apiData?.day.notes || apiData?.plan.description || 'فرم صحیح را در تمام حرکات حفظ کن.';
+  const planTitle = apiData.plan.title || 'برنامه فعال';
+  const dayTitle = apiData.day.title || 'تمرین امروز';
+  const planDescription =
+    apiData.day.notes || apiData.plan.description || 'فرم صحیح را در تمام حرکات حفظ کن.';
 
   return (
     <>
@@ -421,32 +408,15 @@ export function StudentTodayPage() {
         open={Boolean(activeExercise)}
         onOpenChange={(open: boolean) => !open && setActiveId(null)}
       >
-        <DialogContent className="overflow-hidden p-0 sm:max-w-2xl">
+        <DialogContent className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-3xl">
           {activeExercise && (
             <>
-              <div className="relative aspect-video bg-brand">
-                {activeExercise.video ? (
-                  <video src={activeExercise.video} controls className="size-full object-contain" />
-                ) : (
-                  <ExerciseImage
-                    src={activeExercise.image}
-                    alt={activeExercise.title}
-                    className="size-full object-cover opacity-75"
-                  />
-                )}
-                {!activeExercise.video && (
-                  <div className="absolute inset-0 grid place-items-center">
-                    <div className="grid size-16 place-items-center rounded-full bg-background/90 text-primary shadow-xl">
-                      <Play className="ms-1 size-7" />
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="p-5">
-                <DialogHeader>
-                  <DialogTitle>{activeExercise.title}</DialogTitle>
-                  <DialogDescription>{activeExercise.description}</DialogDescription>
-                </DialogHeader>
+              <DialogHeader>
+                <DialogTitle>{activeExercise.title}</DialogTitle>
+                <DialogDescription>{activeExercise.description}</DialogDescription>
+              </DialogHeader>
+              <ExerciseMediaGallery items={activeExercise.media} title={activeExercise.title} />
+              <div className="flex flex-col gap-4">
                 <div className="rounded-xl bg-info/10 p-4 text-sm leading-7 text-info">
                   <Info className="me-2 inline size-4" />
                   کتف‌ها و ستون فقرات را در وضعیت پایدار نگه دار و دامنه حرکت را فدای وزن بیشتر نکن.

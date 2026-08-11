@@ -23,7 +23,7 @@ app.use(
   '*',
   cors({
     origin: env.WEB_ORIGIN,
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Demo-Role'],
+    allowHeaders: ['Content-Type', 'Authorization'],
     allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     exposeHeaders: ['Content-Length'],
     maxAge: 600,

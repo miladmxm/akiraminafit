@@ -12,7 +12,6 @@ A full-stack Persian RTL fitness coaching MVP packaged as a Vite+ monorepo and i
 - Workout plan builder, weekday scheduling and immutable exercise snapshots
 - Daily student workout Todo, actual completion records and offline mutation queue
 - Body report history and progress charts
-- Demo mode plus live API mode
 
 ## Quick start
 
@@ -32,13 +31,10 @@ Web: `http://localhost:5173`
 API: `http://localhost:3000`  
 MinIO console: `http://localhost:9001`
 
-The UI starts in demo mode. Set `VITE_DEMO_MODE=false` in `.env` to use Better Auth and the live
-API. Disable both demo flags in production.
-
 ## Primary coach seed
 
 Set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`, then run `npm run db:seed`. The
-command creates or updates that account with the `coach` role. It does not create demo students,
+command creates or updates that account with the `coach` role. It does not create students,
 exercises, plans, workouts, or reports, and it never prints the password.
 
 ## Verification

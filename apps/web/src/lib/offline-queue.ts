@@ -45,13 +45,10 @@ export async function flushMutationQueue() {
 
   for (const item of items.sort((a, b) => a.createdAt - b.createdAt)) {
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const demoRole = localStorage.getItem('fitflow-demo-role');
-      if (demoRole === 'coach' || demoRole === 'student') headers['X-Demo-Role'] = demoRole;
       const request: RequestInit = {
         method: item.method,
         credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
       };
       if (item.body !== undefined) request.body = JSON.stringify(item.body);
       const response = await fetch(item.url, request);

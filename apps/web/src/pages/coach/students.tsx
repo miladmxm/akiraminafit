@@ -47,8 +47,7 @@ import {
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { apiFetch, isDemoMode } from '@/lib/api';
-import { demoStudents, type DemoStudent } from '@/lib/demo-data';
+import { apiFetch } from '@/lib/api';
 import { studentSchema, type StudentFormValues } from '@/lib/form-schemas';
 import { formatFaDate, formatFaNumber } from '@/lib/utils';
 
@@ -66,7 +65,16 @@ type StudentApiRow = {
   medicalNotes: string | null;
 };
 
-type StudentListItem = DemoStudent & {
+type StudentListItem = {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  goal: string;
+  adherence: number;
+  lastWorkout: string;
+  weight: number;
+  trend: number;
   phone: string;
   birthDate: string;
   gender: StudentApiRow['gender'];
@@ -108,7 +116,6 @@ export function CoachStudentsPage() {
   const [notice, setNotice] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<StudentListItem | null>(null);
-  const [demoItems, setDemoItems] = useState(demoStudents);
   const {
     control,
     register,
@@ -123,16 +130,13 @@ export function CoachStudentsPage() {
 
   const studentsQuery = useQuery({
     queryKey: ['coach', 'students'],
-    queryFn: () =>
-      apiFetch<{ data: StudentApiRow[] }>('/api/coach/students', { demoRole: 'coach' }),
-    enabled: !isDemoMode,
+    queryFn: () => apiFetch<{ data: StudentApiRow[] }>('/api/coach/students'),
   });
 
   const createMutation = useMutation({
     mutationFn: (form: StudentFormValues) =>
       apiFetch<{ message: string }>('/api/coach/students', {
         method: 'POST',
-        demoRole: 'coach',
         body: JSON.stringify({
           ...form,
           birthDate: form.birthDate || null,
@@ -149,31 +153,22 @@ export function CoachStudentsPage() {
     },
   });
 
-  const source: StudentListItem[] = isDemoMode
-    ? demoItems.map((student) => ({
-        ...student,
-        phone: '',
-        birthDate: '',
-        gender: null,
-        heightCm: 0,
-        medicalNotes: '',
-      }))
-    : (studentsQuery.data?.data ?? []).map((student) => ({
-        id: student.id,
-        name: student.name,
-        email: student.email,
-        avatar: initials(student.name),
-        goal: student.goal || 'هدف هنوز ثبت نشده',
-        adherence: 0,
-        lastWorkout: 'بدون تمرین ثبت‌شده',
-        weight: Number(student.initialWeightKg ?? 0),
-        trend: 0,
-        phone: student.phone ?? '',
-        birthDate: student.birthDate ?? '',
-        gender: student.gender,
-        heightCm: Number(student.heightCm ?? 0),
-        medicalNotes: student.medicalNotes ?? '',
-      }));
+  const source: StudentListItem[] = (studentsQuery.data?.data ?? []).map((student) => ({
+    id: student.id,
+    name: student.name,
+    email: student.email,
+    avatar: initials(student.name),
+    goal: student.goal || 'هدف هنوز ثبت نشده',
+    adherence: 0,
+    lastWorkout: 'بدون تمرین ثبت‌شده',
+    weight: Number(student.initialWeightKg ?? 0),
+    trend: 0,
+    phone: student.phone ?? '',
+    birthDate: student.birthDate ?? '',
+    gender: student.gender,
+    heightCm: Number(student.heightCm ?? 0),
+    medicalNotes: student.medicalNotes ?? '',
+  }));
 
   const students = useMemo(
     () =>
@@ -186,26 +181,6 @@ export function CoachStudentsPage() {
 
   const createStudent = async (form: StudentFormValues) => {
     setNotice('');
-    if (isDemoMode) {
-      setDemoItems((current) => [
-        {
-          id: crypto.randomUUID(),
-          name: form.name,
-          email: form.email,
-          avatar: initials(form.name),
-          goal: form.goal,
-          adherence: 0,
-          lastWorkout: 'هنوز تمرینی ثبت نشده',
-          weight: Number(form.initialWeightKg || 0),
-          trend: 0,
-        },
-        ...current,
-      ]);
-      setNotice('حساب و پرونده نمایشی شاگرد ساخته شد.');
-      reset(emptyForm);
-      setCreateOpen(false);
-      return;
-    }
     try {
       await createMutation.mutateAsync(form);
     } catch (error) {

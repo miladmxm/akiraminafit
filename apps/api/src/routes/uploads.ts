@@ -1,8 +1,8 @@
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { uploadRequestSchema } from '@fitflow/contracts';
 import { bodyReports, db, exerciseMedia, exercises } from '@fitflow/db';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
@@ -72,8 +72,12 @@ export const uploadsRoutes = new Hono<AppEnv>()
         exerciseId: z.string().uuid(),
         storageKey: z.string().min(5),
         url: z.string().url(),
-        mimeType: z.string().min(3),
-        fileSize: z.number().int().positive(),
+        mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm']),
+        fileSize: z
+          .number()
+          .int()
+          .positive()
+          .max(100 * 1024 * 1024),
       }),
     ),
     async (c) => {
@@ -86,6 +90,17 @@ export const uploadsRoutes = new Hono<AppEnv>()
         .where(and(eq(exercises.id, input.exerciseId), eq(exercises.coachId, user.id)))
         .limit(1);
       if (!ownedExercise) return c.json({ message: 'حرکت پیدا نشد.' }, 404);
+      const expectedKeyPrefix = `${user.id}/exercise/${input.exerciseId}/`;
+      const expectedUrl = `${env.S3_PUBLIC_URL}/${input.storageKey}`;
+      if (!input.storageKey.startsWith(expectedKeyPrefix) || input.url !== expectedUrl) {
+        return c.json({ message: 'مشخصات فایل آپلودشده معتبر نیست.' }, 400);
+      }
+      const [lastMedia] = await db
+        .select({ sortOrder: exerciseMedia.sortOrder })
+        .from(exerciseMedia)
+        .where(eq(exerciseMedia.exerciseId, input.exerciseId))
+        .orderBy(desc(exerciseMedia.sortOrder))
+        .limit(1);
       const [created] = await db
         .insert(exerciseMedia)
         .values({
@@ -95,8 +110,31 @@ export const uploadsRoutes = new Hono<AppEnv>()
           mimeType: input.mimeType,
           fileSize: input.fileSize,
           mediaType: input.mimeType.startsWith('video/') ? 'video' : 'image',
+          sortOrder: (lastMedia?.sortOrder ?? -1) + 1,
         })
         .returning();
       return c.json({ data: created }, 201);
     },
-  );
+  )
+  .delete('/exercise-media/:id', async (c) => {
+    const user = c.get('user');
+    if (user.role !== 'coach') return c.json({ message: 'دسترسی مجاز نیست.' }, 403);
+
+    const [ownedMedia] = await db
+      .select({ id: exerciseMedia.id, storageKey: exerciseMedia.storageKey })
+      .from(exerciseMedia)
+      .innerJoin(exercises, eq(exercises.id, exerciseMedia.exerciseId))
+      .where(and(eq(exerciseMedia.id, c.req.param('id')), eq(exercises.coachId, user.id)))
+      .limit(1);
+
+    if (!ownedMedia) return c.json({ message: 'فایل پیدا نشد.' }, 404);
+
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: env.S3_BUCKET,
+        Key: ownedMedia.storageKey,
+      }),
+    );
+    await db.delete(exerciseMedia).where(eq(exerciseMedia.id, ownedMedia.id));
+    return c.body(null, 204);
+  });

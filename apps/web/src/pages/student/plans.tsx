@@ -14,14 +14,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
-import { apiFetch, isDemoMode } from '@/lib/api';
+import { apiFetch } from '@/lib/api';
 import { formatFaDate, formatFaNumber, todayApiValue } from '@/lib/utils';
-
-const demoPlanDays = [
-  { id: 'day-1', title: 'تمام بدن A', dayNumber: 1, exercises: new Array(4).fill(null) },
-  { id: 'day-2', title: 'تمام بدن B', dayNumber: 2, exercises: new Array(5).fill(null) },
-  { id: 'day-3', title: 'تمام بدن C', dayNumber: 3, exercises: new Array(4).fill(null) },
-];
 
 type StudentPlan = {
   id: string;
@@ -42,29 +36,19 @@ export function StudentPlansPage() {
   const [selectedPlan, setSelectedPlan] = useState<StudentPlan | null>(null);
   const plansQuery = useQuery({
     queryKey: ['student', 'plans'],
-    queryFn: () => apiFetch<{ data: StudentPlan[] }>('/api/student/plans', { demoRole: 'student' }),
-    enabled: !isDemoMode,
+    queryFn: () => apiFetch<{ data: StudentPlan[] }>('/api/student/plans'),
   });
 
   const plans = plansQuery.data?.data ?? [];
   const currentDate = todayApiValue();
-  const activePlan = isDemoMode
-    ? {
-        id: 'demo-active',
-        title: 'دوره افزایش قدرت - فاز اول',
-        description: 'سه جلسه در هفته با تمرکز روی حرکات پایه، تکنیک صحیح و افزایش تدریجی وزن.',
-        startDate: '2026-08-01',
-        endDate: null,
-        status: 'active' as const,
-        days: demoPlanDays,
-      }
-    : (plans.find(
-        (plan) =>
-          plan.status === 'active' &&
-          plan.startDate <= currentDate &&
-          (!plan.endDate || plan.endDate >= currentDate),
-      ) ?? null);
-  const previousPlans = isDemoMode ? [] : plans.filter((plan) => plan.id !== activePlan?.id);
+  const activePlan =
+    plans.find(
+      (plan) =>
+        plan.status === 'active' &&
+        plan.startDate <= currentDate &&
+        (!plan.endDate || plan.endDate >= currentDate),
+    ) ?? null;
+  const previousPlans = plans.filter((plan) => plan.id !== activePlan?.id);
 
   return (
     <>
@@ -164,78 +148,36 @@ export function StudentPlansPage() {
           <CardDescription>برنامه‌های گذشته، آینده و آرشیوشده</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {isDemoMode ? (
-            <>
-              {(
-                [
-                  ['آمادگی عمومی - شروع', 'فروردین تا اردیبهشت ۱۴۰۵', '۹۲٪'],
-                  ['کاهش چربی - فاز اول', 'خرداد تا تیر ۱۴۰۵', '۸۶٪'],
-                ] as const
-              ).map(([title, date, score]) => (
-                <div
-                  key={title}
-                  className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center"
-                >
-                  <div className="grid size-11 place-items-center rounded-xl bg-muted text-muted-foreground">
-                    <CalendarDays className="size-5" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-black">{title}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">{date}</div>
-                  </div>
-                  <Badge variant="success">پایبندی {score}</Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      setSelectedPlan({
-                        id: title,
-                        title,
-                        description: `پایبندی ثبت‌شده: ${score}`,
-                        startDate: '',
-                        endDate: null,
-                        status: 'completed',
-                        days: [],
-                      })
-                    }
-                  >
-                    جزئیات <ChevronLeft data-icon="inline-end" />
-                  </Button>
-                </div>
-              ))}
-            </>
-          ) : (
-            previousPlans.map((plan) => (
-              <div
-                key={plan.id}
-                className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center"
-              >
-                <div className="grid size-11 place-items-center rounded-xl bg-muted text-muted-foreground">
-                  <CalendarDays className="size-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-black">{plan.title}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {formatFaDate(plan.startDate)}{' '}
-                    {plan.endDate ? `تا ${formatFaDate(plan.endDate)}` : ''}
-                  </div>
-                </div>
-                <Badge variant="secondary">
-                  {plan.status === 'completed'
-                    ? 'تکمیل‌شده'
-                    : plan.status === 'archived'
-                      ? 'آرشیو'
-                      : plan.startDate > currentDate
-                        ? 'زمان‌بندی‌شده'
-                        : 'پایان‌یافته'}
-                </Badge>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedPlan(plan)}>
-                  جزئیات <ChevronLeft data-icon="inline-end" />
-                </Button>
+          {previousPlans.map((plan) => (
+            <div
+              key={plan.id}
+              className="flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center"
+            >
+              <div className="grid size-11 place-items-center rounded-xl bg-muted text-muted-foreground">
+                <CalendarDays className="size-5" />
               </div>
-            ))
-          )}
-          {!isDemoMode && !previousPlans.length && (
+              <div className="flex-1">
+                <div className="font-black">{plan.title}</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {formatFaDate(plan.startDate)}{' '}
+                  {plan.endDate ? `تا ${formatFaDate(plan.endDate)}` : ''}
+                </div>
+              </div>
+              <Badge variant="secondary">
+                {plan.status === 'completed'
+                  ? 'تکمیل‌شده'
+                  : plan.status === 'archived'
+                    ? 'آرشیو'
+                    : plan.startDate > currentDate
+                      ? 'زمان‌بندی‌شده'
+                      : 'پایان‌یافته'}
+              </Badge>
+              <Button variant="ghost" size="sm" onClick={() => setSelectedPlan(plan)}>
+                جزئیات <ChevronLeft data-icon="inline-end" />
+              </Button>
+            </div>
+          ))}
+          {!previousPlans.length && (
             <div className="py-8 text-center text-sm text-muted-foreground">
               برنامه دیگری وجود ندارد.
             </div>

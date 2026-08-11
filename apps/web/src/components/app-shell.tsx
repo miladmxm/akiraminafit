@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Images,
   Users,
   X,
 } from 'lucide-react';
@@ -27,6 +28,7 @@ const coachNav = [
   { href: '/coach', label: 'داشبورد', icon: LayoutDashboard, end: true },
   { href: '/coach/students', label: 'شاگردان', icon: Users, end: false },
   { href: '/coach/exercises', label: 'حرکات', icon: Dumbbell, end: false },
+  { href: '/coach/media', label: 'مدیا', icon: Images, end: false },
   { href: '/coach/plans/new', label: 'برنامه‌ساز', icon: ClipboardList, end: false },
   { href: '/coach/reports', label: 'گزارش‌ها', icon: BarChart3, end: false },
 ];
@@ -38,14 +40,22 @@ const studentNav = [
 ];
 
 export function AppShell({ role }: { role: UserRole }) {
+  const { data: session } = authClient.useSession();
   const [mobileMenu, setMobileMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const nav = role === 'coach' ? coachNav : studentNav;
-  const user =
-    role === 'coach'
-      ? { name: 'آرش رضایی', role: 'مربی', initials: 'آ‌ر' }
-      : { name: 'نیما احمدی', role: 'شاگرد', initials: 'ن‌ا' };
+  const sessionUser = session?.user as { name?: string } | undefined;
+  const userName = sessionUser?.name?.trim() || (role === 'coach' ? 'مربی' : 'شاگرد');
+  const user = {
+    name: userName,
+    role: role === 'coach' ? 'مربی' : 'شاگرد',
+    initials: userName
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('‌'),
+  };
 
   const logout = async () => {
     await authClient.signOut().catch(() => undefined);

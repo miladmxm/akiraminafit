@@ -53,8 +53,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { apiFetch, isDemoMode } from '@/lib/api';
-import { demoExercises, demoStudents, type DemoExercise } from '@/lib/demo-data';
+import { apiFetch } from '@/lib/api';
 import { planSchema, type PlanFormValues } from '@/lib/form-schemas';
 import { cn, formatFaNumber, todayApiValue } from '@/lib/utils';
 
@@ -73,7 +72,18 @@ type ApiExercise = {
   media: Array<{ mediaType: 'image' | 'video'; url: string }>;
 };
 
-function mapExercise(exercise: ApiExercise): DemoExercise {
+type DisplayExercise = {
+  id: string;
+  title: string;
+  description: string;
+  instructions: string;
+  muscleGroup: string;
+  equipment: string;
+  difficulty: 'مبتدی' | 'متوسط' | 'پیشرفته';
+  image: string;
+};
+
+function mapExercise(exercise: ApiExercise): DisplayExercise {
   const labels = { beginner: 'مبتدی', intermediate: 'متوسط', advanced: 'پیشرفته' } as const;
   return {
     id: exercise.id,
@@ -87,28 +97,7 @@ function mapExercise(exercise: ApiExercise): DemoExercise {
   };
 }
 
-const initialItems: PlanItem[] = isDemoMode
-  ? [
-      {
-        id: crypto.randomUUID(),
-        exerciseId: 'ex-1',
-        sets: 4,
-        reps: '۸-۱۰',
-        rest: 90,
-        weight: 16,
-        notes: 'یک تکرار در ذخیره نگه‌دار.',
-      },
-      {
-        id: crypto.randomUUID(),
-        exerciseId: 'ex-2',
-        sets: 3,
-        reps: '۱۲',
-        rest: 75,
-        weight: 18,
-        notes: '',
-      },
-    ]
-  : [];
+const initialItems: PlanItem[] = [];
 
 const weekdayOptions = [
   { value: 6, label: 'شنبه' },
@@ -133,9 +122,9 @@ export function CoachPlanBuilderPage() {
   } = useForm<PlanFormValues>({
     resolver: valibotResolver(planSchema),
     defaultValues: {
-      studentId: isDemoMode ? demoStudents[0]!.id : (searchParams.get('studentId') ?? ''),
-      title: 'دوره افزایش قدرت - فاز اول',
-      description: 'سه جلسه در هفته با تمرکز روی حرکات پایه و پیشرفت تدریجی بار تمرین.',
+      studentId: searchParams.get('studentId') ?? '',
+      title: '',
+      description: '',
       startDate: todayApiValue(),
       days: [
         {
@@ -157,23 +146,21 @@ export function CoachPlanBuilderPage() {
 
   const studentsQuery = useQuery({
     queryKey: ['coach', 'students'],
-    queryFn: () => apiFetch<{ data: StudentRow[] }>('/api/coach/students', { demoRole: 'coach' }),
-    enabled: !isDemoMode,
+    queryFn: () => apiFetch<{ data: StudentRow[] }>('/api/coach/students'),
   });
   const exercisesQuery = useQuery({
     queryKey: ['coach', 'exercises'],
-    queryFn: () => apiFetch<{ data: ApiExercise[] }>('/api/coach/exercises', { demoRole: 'coach' }),
-    enabled: !isDemoMode,
+    queryFn: () => apiFetch<{ data: ApiExercise[] }>('/api/coach/exercises'),
   });
 
-  const students = isDemoMode ? demoStudents : (studentsQuery.data?.data ?? []);
+  const students = studentsQuery.data?.data ?? [];
   const exercises = useMemo(
-    () => (isDemoMode ? demoExercises : (exercisesQuery.data?.data ?? []).map(mapExercise)),
+    () => (exercisesQuery.data?.data ?? []).map(mapExercise),
     [exercisesQuery.data],
   );
 
   useEffect(() => {
-    if (!isDemoMode && !studentId && students[0]) {
+    if (!studentId && students[0]) {
       setValue('studentId', students[0].id, { shouldValidate: true });
     }
   }, [setValue, studentId, students]);
@@ -293,45 +280,37 @@ export function CoachPlanBuilderPage() {
   const savePlan = async (form: PlanFormValues, publish: boolean) => {
     setStatus('');
     try {
-      if (isDemoMode) {
-        setStatus(publish ? 'برنامه نمایشی منتشر شد.' : 'پیش‌نویس نمایشی ذخیره شد.');
-      } else {
-        const created = await apiFetch<{ data: { id: string } }>('/api/coach/plans', {
-          method: 'POST',
-          demoRole: 'coach',
-          body: JSON.stringify({
-            studentId: form.studentId,
-            title: form.title,
-            description: form.description,
-            startDate: form.startDate,
-            endDate: null,
-            days: form.days.map((day, dayIndex) => ({
-              title: day.title,
-              dayNumber: dayIndex + 1,
-              weekday: day.weekday,
-              notes: '',
-              exercises: day.items.map((item) => ({
-                exerciseId: item.exerciseId,
-                sets: item.sets,
-                reps: item.reps,
-                restSeconds: item.rest,
-                targetWeight: item.weight || null,
-                targetRpe: null,
-                tempo: null,
-                notes: item.notes,
-              })),
+      const created = await apiFetch<{ data: { id: string } }>('/api/coach/plans', {
+        method: 'POST',
+        body: JSON.stringify({
+          studentId: form.studentId,
+          title: form.title,
+          description: form.description,
+          startDate: form.startDate,
+          endDate: null,
+          days: form.days.map((day, dayIndex) => ({
+            title: day.title,
+            dayNumber: dayIndex + 1,
+            weekday: day.weekday,
+            notes: '',
+            exercises: day.items.map((item) => ({
+              exerciseId: item.exerciseId,
+              sets: item.sets,
+              reps: item.reps,
+              restSeconds: item.rest,
+              targetWeight: item.weight || null,
+              targetRpe: null,
+              tempo: null,
+              notes: item.notes,
             })),
-          }),
-        });
-        if (publish) {
-          await apiFetch(`/api/coach/plans/${created.data.id}/publish`, {
-            method: 'POST',
-            demoRole: 'coach',
-          });
-        }
-        await queryClient.invalidateQueries({ queryKey: ['student', 'plans'] });
-        setStatus(publish ? 'برنامه با موفقیت منتشر شد.' : 'پیش‌نویس با موفقیت ذخیره شد.');
+          })),
+        }),
+      });
+      if (publish) {
+        await apiFetch(`/api/coach/plans/${created.data.id}/publish`, { method: 'POST' });
       }
+      await queryClient.invalidateQueries({ queryKey: ['student', 'plans'] });
+      setStatus(publish ? 'برنامه با موفقیت منتشر شد.' : 'پیش‌نویس با موفقیت ذخیره شد.');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'ذخیره برنامه ناموفق بود.');
     } finally {

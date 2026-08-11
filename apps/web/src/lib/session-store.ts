@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { UserRole } from '@fitflow/contracts';
 
-const KEY = 'fitflow-demo-role';
+const KEY = 'akiraminafit-role';
 const listeners = new Set<() => void>();
 
 function emit() {

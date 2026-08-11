@@ -94,7 +94,7 @@ async function main() {
   const action = created ? 'created' : 'updated';
   const passwordStatus = passwordChanged ? ' Password synchronized from ADMIN_PASSWORD.' : '';
   console.log(`Primary coach ${action}: ${coach.email}.${passwordStatus}`);
-  console.log('No demo students, exercises, plans, workouts, or reports were seeded.');
+  console.log('No students, exercises, plans, workouts, or reports were seeded.');
 }
 
 main()
