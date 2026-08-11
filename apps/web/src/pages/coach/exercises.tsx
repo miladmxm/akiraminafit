@@ -1,19 +1,31 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Camera, Filter, MoreVertical, Play, Plus, Search, Upload } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Camera, Filter, MoreVertical, Play, Plus, Upload } from 'lucide-react';
+import { useMemo, useState, type FormEvent } from 'react';
+import { ExerciseImage } from '@/components/exercise-image';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch, isDemoMode } from '@/lib/api';
 import { demoExercises, type DemoExercise } from '@/lib/demo-data';
@@ -54,8 +66,10 @@ export function CoachExercisesPage() {
   const [group, setGroup] = useState('همه');
   const [demoItems, setDemoItems] = useState(demoExercises);
   const [file, setFile] = useState<File | null>(null);
-  const [status, setStatus] = useState('');
+  const [notice, setNotice] = useState('');
+  const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<DemoExercise | null>(null);
   const [newExercise, setNewExercise] = useState({
     title: '',
@@ -95,13 +109,14 @@ export function CoachExercisesPage() {
     setFile(null);
   };
 
-  const addExercise = async () => {
+  const addExercise = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!newExercise.title.trim() || !newExercise.muscleGroup.trim()) {
-      setStatus('عنوان و گروه عضلانی الزامی است.');
+      setFormError('عنوان و گروه عضلانی الزامی است.');
       return;
     }
     setSaving(true);
-    setStatus('');
+    setFormError('');
     try {
       if (isDemoMode) {
         const item: DemoExercise = {
@@ -165,9 +180,10 @@ export function CoachExercisesPage() {
         await queryClient.invalidateQueries({ queryKey: ['coach', 'exercises'] });
       }
       resetForm();
-      setStatus('حرکت با موفقیت ذخیره شد.');
+      setCreateOpen(false);
+      setNotice('حرکت با موفقیت به کتابخانه اضافه شد.');
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'ذخیره حرکت ناموفق بود.');
+      setFormError(error instanceof Error ? error.message : 'ذخیره حرکت ناموفق بود.');
     } finally {
       setSaving(false);
     }
@@ -179,94 +195,152 @@ export function CoachExercisesPage() {
         title="کتابخانه حرکات"
         description="حرکات را یک‌بار تعریف کن و در برنامه‌های مختلف دوباره استفاده کن."
         action={
-          <Dialog>
+          <Dialog
+            open={createOpen}
+            onOpenChange={(open) => {
+              setCreateOpen(open);
+              setFormError('');
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
-                <Plus className="size-4" /> حرکت جدید
+                <Plus data-icon="inline-start" /> حرکت جدید
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
-              <DialogHeader>
+            <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col overflow-hidden p-0 sm:max-h-[min(46rem,calc(100dvh-2rem))] sm:max-w-2xl">
+              <DialogHeader className="mb-0 border-b p-5 pe-14">
                 <DialogTitle>تعریف حرکت تمرینی</DialogTitle>
                 <DialogDescription>
                   عنوان، توضیحات اجرای صحیح و فایل آموزشی حرکت را ثبت کن.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm font-bold">عنوان حرکت</span>
-                  <Input
-                    value={newExercise.title}
-                    onChange={(event) =>
-                      setNewExercise({ ...newExercise, title: event.target.value })
-                    }
-                    placeholder="مثلاً پرس سینه دمبل"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-sm font-bold">گروه عضلانی</span>
-                  <Input
-                    value={newExercise.muscleGroup}
-                    onChange={(event) =>
-                      setNewExercise({ ...newExercise, muscleGroup: event.target.value })
-                    }
-                    placeholder="سینه"
-                  />
-                </label>
-                <label className="space-y-2">
-                  <span className="text-sm font-bold">تجهیزات</span>
-                  <Input
-                    value={newExercise.equipment}
-                    onChange={(event) =>
-                      setNewExercise({ ...newExercise, equipment: event.target.value })
-                    }
-                    placeholder="دمبل و نیمکت"
-                  />
-                </label>
-                <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm font-bold">توضیح کوتاه</span>
-                  <Textarea
-                    value={newExercise.description}
-                    onChange={(event) =>
-                      setNewExercise({ ...newExercise, description: event.target.value })
-                    }
-                  />
-                </label>
-                <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm font-bold">نحوه اجرای صحیح</span>
-                  <Textarea
-                    value={newExercise.instructions}
-                    onChange={(event) =>
-                      setNewExercise({ ...newExercise, instructions: event.target.value })
-                    }
-                  />
-                </label>
-                <div className="sm:col-span-2">
-                  <div className="rounded-2xl border-2 border-dashed bg-slate-50 p-6 text-center">
-                    <Upload className="mx-auto size-7 text-teal-700" />
-                    <p className="mt-3 text-sm font-bold">تصویر یا ویدیوی آموزشی را انتخاب کن</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      JPG، PNG، WebP، MP4 یا WebM تا ۱۰۰ مگابایت
-                    </p>
-                    <Input
-                      className="mx-auto mt-4 max-w-sm bg-white"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
-                      onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                    />
-                  </div>
+              <form className="contents" onSubmit={(event) => void addExercise(event)}>
+                <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                  <FieldGroup className="grid gap-4 sm:grid-cols-2">
+                    <Field
+                      className="sm:col-span-2"
+                      data-invalid={Boolean(formError && !newExercise.title.trim())}
+                    >
+                      <FieldLabel htmlFor="new-exercise-title">عنوان حرکت</FieldLabel>
+                      <Input
+                        id="new-exercise-title"
+                        value={newExercise.title}
+                        onChange={(event) =>
+                          setNewExercise({ ...newExercise, title: event.target.value })
+                        }
+                        placeholder="مثلاً پرس سینه دمبل"
+                        aria-invalid={Boolean(formError && !newExercise.title.trim())}
+                        autoFocus
+                      />
+                    </Field>
+                    <Field data-invalid={Boolean(formError && !newExercise.muscleGroup.trim())}>
+                      <FieldLabel htmlFor="new-exercise-muscle">گروه عضلانی</FieldLabel>
+                      <Input
+                        id="new-exercise-muscle"
+                        value={newExercise.muscleGroup}
+                        onChange={(event) =>
+                          setNewExercise({ ...newExercise, muscleGroup: event.target.value })
+                        }
+                        placeholder="سینه"
+                        aria-invalid={Boolean(formError && !newExercise.muscleGroup.trim())}
+                      />
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="new-exercise-equipment">تجهیزات</FieldLabel>
+                      <Input
+                        id="new-exercise-equipment"
+                        value={newExercise.equipment}
+                        onChange={(event) =>
+                          setNewExercise({ ...newExercise, equipment: event.target.value })
+                        }
+                        placeholder="دمبل و نیمکت"
+                      />
+                    </Field>
+                    <Field className="sm:col-span-2">
+                      <FieldLabel htmlFor="new-exercise-description">توضیح کوتاه</FieldLabel>
+                      <Textarea
+                        id="new-exercise-description"
+                        value={newExercise.description}
+                        onChange={(event) =>
+                          setNewExercise({ ...newExercise, description: event.target.value })
+                        }
+                        placeholder="هدف حرکت و عضلات درگیر را کوتاه بنویس."
+                      />
+                    </Field>
+                    <Field className="sm:col-span-2">
+                      <FieldLabel htmlFor="new-exercise-instructions">نحوه اجرای صحیح</FieldLabel>
+                      <Textarea
+                        id="new-exercise-instructions"
+                        value={newExercise.instructions}
+                        onChange={(event) =>
+                          setNewExercise({ ...newExercise, instructions: event.target.value })
+                        }
+                        placeholder="مراحل اجرا و نکات ایمنی حرکت را بنویس."
+                      />
+                    </Field>
+                    <Field className="sm:col-span-2">
+                      <FieldLabel htmlFor="new-exercise-file">فایل آموزشی (اختیاری)</FieldLabel>
+                      <label
+                        htmlFor="new-exercise-file"
+                        className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed bg-muted/50 p-6 text-center transition-colors hover:border-primary hover:bg-primary/5"
+                      >
+                        <Upload className="size-7 text-primary" />
+                        <span className="text-sm font-bold">
+                          {file ? 'برای تغییر فایل دوباره انتخاب کن' : 'تصویر یا ویدیو انتخاب کن'}
+                        </span>
+                        {file && (
+                          <Badge variant="secondary" className="max-w-full truncate" dir="ltr">
+                            {file.name}
+                          </Badge>
+                        )}
+                      </label>
+                      <Input
+                        id="new-exercise-file"
+                        className="sr-only"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+                        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                      />
+                      <FieldDescription>
+                        JPG، PNG، WebP، MP4 یا WebM تا ۱۰۰ مگابایت
+                      </FieldDescription>
+                    </Field>
+                  </FieldGroup>
                 </div>
-              </div>
-              {status && (
-                <p className="mt-4 rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold">{status}</p>
-              )}
-              <Button className="mt-5 w-full" disabled={saving} onClick={() => void addExercise()}>
-                {saving ? 'در حال ذخیره...' : 'ذخیره حرکت'}
-              </Button>
+                {formError && (
+                  <FieldError className="border-t bg-destructive/5 px-4 py-3">
+                    {formError}
+                  </FieldError>
+                )}
+                <DialogFooter className="items-stretch border-t bg-background p-4 sm:items-center">
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" disabled={saving}>
+                      انصراف
+                    </Button>
+                  </DialogClose>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? (
+                      <Spinner data-icon="inline-start" />
+                    ) : (
+                      <Plus data-icon="inline-start" />
+                    )}
+                    {saving ? 'در حال ذخیره...' : 'افزودن به کتابخانه'}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         }
       />
+
+      {notice && (
+        <div
+          className="mb-5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-bold text-primary"
+          role="status"
+        >
+          {notice}
+        </div>
+      )}
 
       {exercisesQuery.isError && (
         <div className="mb-5 rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
@@ -275,15 +349,17 @@ export function CoachExercisesPage() {
       )}
 
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex max-w-md flex-1 items-center gap-2 rounded-xl border bg-white px-3 shadow-sm">
-          <Search className="size-4 text-muted-foreground" />
+        <Field className="max-w-md flex-1 gap-0">
+          <FieldLabel className="sr-only" htmlFor="exercise-search">
+            جست‌وجوی حرکت
+          </FieldLabel>
           <Input
-            className="border-0 px-0 focus:ring-0"
-            placeholder="جستجوی حرکت..."
+            id="exercise-search"
+            placeholder="جست‌وجوی حرکت..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
-        </div>
+        </Field>
         <div className="flex items-center gap-2 overflow-x-auto pb-1">
           <Filter className="size-4 shrink-0 text-muted-foreground" />
           {groups.map((item) => (
@@ -306,7 +382,7 @@ export function CoachExercisesPage() {
             className="overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lg"
           >
             <div className="relative aspect-[16/9] overflow-hidden bg-slate-100">
-              <img
+              <ExerciseImage
                 src={exercise.image}
                 alt={exercise.title}
                 className="size-full object-cover transition duration-500 hover:scale-105"
@@ -361,9 +437,15 @@ export function CoachExercisesPage() {
       </section>
 
       {!filtered.length && !exercisesQuery.isLoading && (
-        <div className="rounded-2xl border-2 border-dashed p-10 text-center text-sm text-muted-foreground">
-          حرکتی پیدا نشد.
-        </div>
+        <Empty className="border">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <Filter />
+            </EmptyMedia>
+            <EmptyTitle>حرکتی پیدا نشد</EmptyTitle>
+            <EmptyDescription>عبارت جست‌وجو یا گروه عضلانی را تغییر بده.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       )}
 
       <Dialog open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
@@ -378,7 +460,7 @@ export function CoachExercisesPage() {
           </DialogHeader>
           {selected && (
             <div className="flex flex-col gap-4">
-              <img
+              <ExerciseImage
                 src={selected.image}
                 alt={selected.title}
                 className="aspect-video w-full rounded-xl object-cover"

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { ExerciseImage } from '@/components/exercise-image';
 import { JalaliDatePicker } from '@/components/jalali-date-picker';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -21,12 +22,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import {
@@ -37,11 +48,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { apiFetch, isDemoMode } from '@/lib/api';
 import { demoExercises, demoStudents, type DemoExercise } from '@/lib/demo-data';
-import { cn, todayApiValue } from '@/lib/utils';
+import { cn, formatFaNumber, todayApiValue } from '@/lib/utils';
 
 interface PlanItem {
   id: string;
@@ -137,6 +149,7 @@ export function CoachPlanBuilderPage() {
   const [status, setStatus] = useState('');
   const [saving, setSaving] = useState(false);
   const [exerciseDialogOpen, setExerciseDialogOpen] = useState(false);
+  const [exerciseQuery, setExerciseQuery] = useState('');
 
   const studentsQuery = useQuery({
     queryKey: ['coach', 'students'],
@@ -163,6 +176,24 @@ export function CoachPlanBuilderPage() {
     () => days.find((day) => day.id === activeDayId) ?? days[0]!,
     [activeDayId, days],
   );
+  const filteredExercises = useMemo(() => {
+    const normalizedQuery = exerciseQuery.trim().toLocaleLowerCase('fa');
+    if (!normalizedQuery) return exercises;
+    return exercises.filter((exercise) =>
+      [exercise.title, exercise.muscleGroup, exercise.equipment].some((value) =>
+        value.toLocaleLowerCase('fa').includes(normalizedQuery),
+      ),
+    );
+  }, [exerciseQuery, exercises]);
+  const addedExerciseIds = useMemo(
+    () => new Set(activeDay.items.map((item) => item.exerciseId)),
+    [activeDay.items],
+  );
+
+  const handleExerciseDialogOpenChange = (open: boolean) => {
+    setExerciseDialogOpen(open);
+    if (!open) setExerciseQuery('');
+  };
 
   const addDay = () => {
     const used = new Set(days.map((day) => day.weekday));
@@ -186,8 +217,9 @@ export function CoachPlanBuilderPage() {
   const addExercise = (exerciseId: string) => {
     setDays((current) =>
       current.map((day) =>
-        day.id === activeDay.id
-          ? {
+        day.id !== activeDay.id || day.items.some((item) => item.exerciseId === exerciseId)
+          ? day
+          : {
               ...day,
               items: [
                 ...day.items,
@@ -201,8 +233,7 @@ export function CoachPlanBuilderPage() {
                   notes: '',
                 },
               ],
-            }
-          : day,
+            },
       ),
     );
   };
@@ -413,10 +444,10 @@ export function CoachPlanBuilderPage() {
                 <CardDescription>{days.length} جلسه تعریف شده</CardDescription>
               </div>
               <Button size="sm" variant="outline" onClick={addDay}>
-                <Plus className="size-4" /> روز
+                <Plus data-icon="inline-start" /> روز
               </Button>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="flex flex-col gap-2">
               {days.map((day, index) => (
                 <button
                   key={day.id}
@@ -490,56 +521,130 @@ export function CoachPlanBuilderPage() {
                 <Button variant="destructive" size="icon" onClick={removeDay} aria-label="حذف روز">
                   <Trash2 />
                 </Button>
-                <Dialog open={exerciseDialogOpen} onOpenChange={setExerciseDialogOpen}>
+                <Dialog open={exerciseDialogOpen} onOpenChange={handleExerciseDialogOpenChange}>
                   <DialogTrigger asChild>
                     <Button>
                       <Plus data-icon="inline-start" /> افزودن حرکت
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
+                  <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col overflow-hidden p-0 sm:max-h-[min(44rem,calc(100dvh-2rem))] sm:max-w-2xl">
+                    <DialogHeader className="mb-0 border-b p-5 pe-14">
                       <DialogTitle>انتخاب از کتابخانه</DialogTitle>
                       <DialogDescription>
                         حرکت موردنظر را به {activeDay.title} اضافه کن.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {exercises.map((exercise) => (
-                        <button
-                          key={exercise.id}
-                          onClick={() => addExercise(exercise.id)}
-                          className="flex items-center gap-3 rounded-xl border p-3 text-start hover:border-primary hover:bg-primary/5"
-                        >
-                          <img
-                            className="size-16 rounded-xl object-cover"
-                            src={exercise.image}
-                            alt=""
-                          />
-                          <div className="min-w-0 flex-1">
-                            <div className="font-black">{exercise.title}</div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {exercise.muscleGroup} • {exercise.equipment}
-                            </div>
-                          </div>
-                          <Plus className="size-4 text-primary" />
-                        </button>
-                      ))}
+                    <div className="flex flex-col gap-3 border-b px-5 py-4">
+                      <Field className="gap-2">
+                        <FieldLabel htmlFor="exercise-library-search" className="sr-only">
+                          جست‌وجوی حرکت
+                        </FieldLabel>
+                        <Input
+                          id="exercise-library-search"
+                          value={exerciseQuery}
+                          onChange={(event) => setExerciseQuery(event.target.value)}
+                          placeholder="جست‌وجو با نام، عضله یا تجهیزات..."
+                          autoComplete="off"
+                          autoFocus
+                        />
+                      </Field>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          {formatFaNumber(filteredExercises.length)} نتیجه
+                        </span>
+                        <Badge variant="secondary">
+                          {formatFaNumber(activeDay.items.length)} حرکت در این جلسه
+                        </Badge>
+                      </div>
                     </div>
+                    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                      {filteredExercises.length > 0 ? (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {filteredExercises.map((exercise) => {
+                            const isAdded = addedExerciseIds.has(exercise.id);
+                            return (
+                              <button
+                                key={exercise.id}
+                                type="button"
+                                disabled={isAdded}
+                                onClick={() => addExercise(exercise.id)}
+                                className={cn(
+                                  'flex min-h-20 items-center gap-3 rounded-xl border p-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 disabled:opacity-100',
+                                  isAdded
+                                    ? 'border-primary bg-primary/5'
+                                    : 'hover:border-primary hover:bg-primary/5',
+                                )}
+                              >
+                                <ExerciseImage
+                                  className="size-14 shrink-0 rounded-xl object-cover sm:size-16"
+                                  src={exercise.image}
+                                  alt={exercise.title}
+                                />
+                                <span className="min-w-0 flex-1">
+                                  <span className="block truncate font-black">
+                                    {exercise.title}
+                                  </span>
+                                  <span className="mt-1 block truncate text-xs text-muted-foreground">
+                                    {exercise.muscleGroup} • {exercise.equipment}
+                                  </span>
+                                </span>
+                                {isAdded ? (
+                                  <Badge variant="default">اضافه شد</Badge>
+                                ) : (
+                                  <Plus className="size-5 shrink-0 text-primary" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <Empty className="min-h-52 border">
+                          <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                              <Dumbbell />
+                            </EmptyMedia>
+                            <EmptyTitle>حرکتی پیدا نشد</EmptyTitle>
+                            <EmptyDescription>
+                              عبارت دیگری مثل نام عضله یا تجهیزات را امتحان کن.
+                            </EmptyDescription>
+                          </EmptyHeader>
+                          <EmptyContent>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setExerciseQuery('')}
+                            >
+                              پاک‌کردن جست‌وجو
+                            </Button>
+                          </EmptyContent>
+                        </Empty>
+                      )}
+                    </div>
+                    <DialogFooter className="items-center justify-between border-t bg-background p-4 sm:justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        انتخاب‌ها بلافاصله به انتهای جلسه اضافه می‌شوند.
+                      </span>
+                      <DialogClose asChild>
+                        <Button type="button">
+                          <Check data-icon="inline-start" /> پایان انتخاب
+                        </Button>
+                      </DialogClose>
+                    </DialogFooter>
                   </DialogContent>
                 </Dialog>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-4 sm:p-5">
-            <div className="space-y-4">
+            <div className="flex flex-col gap-4">
               {activeDay.items.map((item, index) => {
                 const exercise = exercises.find((candidate) => candidate.id === item.exerciseId);
                 if (!exercise) return null;
                 return (
-                  <div key={item.id} className="rounded-2xl border bg-white p-4 shadow-sm">
+                  <div key={item.id} className="rounded-2xl border bg-card p-4 shadow-sm">
                     <div className="flex items-start gap-3">
-                      <GripVertical className="mt-4 hidden size-5 shrink-0 text-slate-300 sm:block" />
-                      <img
+                      <GripVertical className="mt-4 hidden size-5 shrink-0 text-muted-foreground sm:block" />
+                      <ExerciseImage
                         src={exercise.image}
                         alt={exercise.title}
                         className="size-16 shrink-0 rounded-xl object-cover"
@@ -559,31 +664,34 @@ export function CoachPlanBuilderPage() {
                           size="icon"
                           onClick={() => moveItem(index, -1)}
                           disabled={index === 0}
+                          aria-label={`انتقال ${exercise.title} به بالا`}
                         >
-                          <ArrowUp className="size-4" />
+                          <ArrowUp />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => moveItem(index, 1)}
                           disabled={index === activeDay.items.length - 1}
+                          aria-label={`انتقال ${exercise.title} به پایین`}
                         >
-                          <ArrowDown className="size-4" />
+                          <ArrowDown />
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="destructive"
                           size="icon"
-                          className="text-red-600"
                           onClick={() => removeItem(item.id)}
+                          aria-label={`حذف ${exercise.title}`}
                         >
-                          <Trash2 className="size-4" />
+                          <Trash2 />
                         </Button>
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
-                      <label className="space-y-1">
-                        <span className="text-[11px] font-bold text-muted-foreground">ست</span>
+                    <FieldGroup className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+                      <Field className="gap-1">
+                        <FieldLabel htmlFor={`sets-${item.id}`}>ست</FieldLabel>
                         <Input
+                          id={`sets-${item.id}`}
                           type="number"
                           min="1"
                           value={item.sets}
@@ -591,19 +699,19 @@ export function CoachPlanBuilderPage() {
                             updateItem(item.id, 'sets', Number(event.target.value))
                           }
                         />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-[11px] font-bold text-muted-foreground">تکرار</span>
+                      </Field>
+                      <Field className="gap-1">
+                        <FieldLabel htmlFor={`reps-${item.id}`}>تکرار</FieldLabel>
                         <Input
+                          id={`reps-${item.id}`}
                           value={item.reps}
                           onChange={(event) => updateItem(item.id, 'reps', event.target.value)}
                         />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-[11px] font-bold text-muted-foreground">
-                          وزن (kg)
-                        </span>
+                      </Field>
+                      <Field className="gap-1">
+                        <FieldLabel htmlFor={`weight-${item.id}`}>وزن (کیلوگرم)</FieldLabel>
                         <Input
+                          id={`weight-${item.id}`}
                           type="number"
                           min="0"
                           value={item.weight}
@@ -611,12 +719,11 @@ export function CoachPlanBuilderPage() {
                             updateItem(item.id, 'weight', Number(event.target.value))
                           }
                         />
-                      </label>
-                      <label className="space-y-1">
-                        <span className="text-[11px] font-bold text-muted-foreground">
-                          استراحت (ث)
-                        </span>
+                      </Field>
+                      <Field className="gap-1">
+                        <FieldLabel htmlFor={`rest-${item.id}`}>استراحت (ثانیه)</FieldLabel>
                         <Input
+                          id={`rest-${item.id}`}
                           type="number"
                           min="0"
                           value={item.rest}
@@ -624,34 +731,41 @@ export function CoachPlanBuilderPage() {
                             updateItem(item.id, 'rest', Number(event.target.value))
                           }
                         />
-                      </label>
-                      <label className="col-span-2 space-y-1 sm:col-span-1">
-                        <span className="text-[11px] font-bold text-muted-foreground">یادداشت</span>
+                      </Field>
+                      <Field className="col-span-2 gap-1 sm:col-span-1">
+                        <FieldLabel htmlFor={`notes-${item.id}`}>یادداشت</FieldLabel>
                         <Input
+                          id={`notes-${item.id}`}
                           value={item.notes}
                           onChange={(event) => updateItem(item.id, 'notes', event.target.value)}
                         />
-                      </label>
-                    </div>
+                      </Field>
+                    </FieldGroup>
                   </div>
                 );
               })}
 
               {activeDay.items.length === 0 && (
-                <div className="grid min-h-72 place-items-center rounded-2xl border-2 border-dashed bg-slate-50 text-center">
-                  <div>
-                    <Dumbbell className="mx-auto size-10 text-slate-300" />
-                    <p className="mt-3 font-black">هنوز حرکتی اضافه نشده</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      از کتابخانه یک یا چند حرکت انتخاب کن.
-                    </p>
-                  </div>
-                </div>
+                <Empty className="min-h-72 border">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Dumbbell />
+                    </EmptyMedia>
+                    <EmptyTitle>هنوز حرکتی اضافه نشده</EmptyTitle>
+                    <EmptyDescription>از کتابخانه یک یا چند حرکت انتخاب کن.</EmptyDescription>
+                  </EmptyHeader>
+                  <EmptyContent>
+                    <Button type="button" onClick={() => setExerciseDialogOpen(true)}>
+                      <Plus data-icon="inline-start" /> انتخاب اولین حرکت
+                    </Button>
+                  </EmptyContent>
+                </Empty>
               )}
             </div>
-            <div className="mt-5 flex flex-wrap justify-between gap-2 border-t pt-5">
+            <Separator className="my-5" />
+            <div className="flex flex-wrap justify-between gap-2">
               <Button variant="ghost" onClick={duplicateDay}>
-                <Copy className="size-4" /> تکثیر این روز
+                <Copy data-icon="inline-start" /> تکثیر این روز
               </Button>
               <div className="text-xs text-muted-foreground">
                 مجموع: {activeDay.items.length} حرکت و{' '}

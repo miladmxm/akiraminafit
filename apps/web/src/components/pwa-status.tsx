@@ -62,7 +62,7 @@ export function PwaStatus() {
   if (installPrompt) {
     return (
       <Button
-        className="fixed bottom-20 start-4 z-40 shadow-xl lg:bottom-5"
+        className="mb-5"
         size="sm"
         onClick={async () => {
           await installPrompt.prompt();
@@ -70,7 +70,7 @@ export function PwaStatus() {
           setInstallPrompt(null);
         }}
       >
-        <Download className="size-4" /> نصب اپ
+        <Download data-icon="inline-start" /> نصب اپ
       </Button>
     );
   }

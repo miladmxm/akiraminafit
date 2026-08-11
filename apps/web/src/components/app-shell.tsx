@@ -144,11 +144,11 @@ export function AppShell({ role }: { role: UserRole }) {
       )}
 
       <main className="min-h-screen pb-24 lg:ms-72 lg:pb-8">
-        <div
-          key={location.pathname}
-          className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
-        >
-          <Outlet />
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <PwaStatus />
+          <div key={location.pathname}>
+            <Outlet />
+          </div>
         </div>
       </main>
 
@@ -173,7 +173,6 @@ export function AppShell({ role }: { role: UserRole }) {
           </NavLink>
         ))}
       </nav>
-      <PwaStatus />
     </div>
   );
 }

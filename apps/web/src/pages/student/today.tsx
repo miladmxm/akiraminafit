@@ -14,6 +14,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { ExerciseImage } from '@/components/exercise-image';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -402,7 +403,7 @@ export function StudentTodayPage() {
                 {activeExercise.video ? (
                   <video src={activeExercise.video} controls className="size-full object-contain" />
                 ) : (
-                  <img
+                  <ExerciseImage
                     src={activeExercise.image}
                     alt={activeExercise.title}
                     className="size-full object-cover opacity-75"
