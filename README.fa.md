@@ -23,6 +23,7 @@ npm install
 cp .env.example .env
 docker compose up -d
 npm run db:push
+# ابتدا ADMIN_NAME و ADMIN_EMAIL و ADMIN_PASSWORD را در فایل .env مقداردهی کنید.
 npm run db:seed
 npm run dev
 ```
@@ -44,10 +45,12 @@ VITE_DEMO_MODE=false
 
 برای production هر دو مقدار `VITE_DEMO_MODE` و `DEMO_MODE` باید `false` باشند.
 
-## حساب‌های seed
+## ساخت حساب مربی اصلی
 
-- مربی: `coach@example.com` / `Coach123!`
-- شاگرد: `student@example.com` / `Student123!`
+مقادیر `ADMIN_NAME`، `ADMIN_EMAIL` و `ADMIN_PASSWORD` را در فایل `.env` تنظیم و سپس
+`npm run db:seed` را اجرا کنید. این فرمان فقط همان حساب را با نقش `coach` ایجاد یا به‌روزرسانی
+می‌کند و هیچ شاگرد، حرکت، برنامه تمرینی یا گزارش نمونه‌ای نمی‌سازد. رمز عبور نیز در خروجی چاپ
+نمی‌شود.
 
 ## فرمان‌ها
 

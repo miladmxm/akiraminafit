@@ -11,8 +11,8 @@ import { setStoredRole } from '@/lib/session-store';
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('coach@example.com');
-  const [password, setPassword] = useState('Coach123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 

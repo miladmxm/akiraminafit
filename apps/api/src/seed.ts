@@ -1,173 +1,105 @@
-import {
-  bodyReports,
-  coachStudents,
-  db,
-  exercises,
-  users,
-  workoutPlanDays,
-  workoutPlanExercises,
-  workoutPlans,
-} from '@fitflow/db';
-import { eq } from 'drizzle-orm';
-import { auth } from './auth.js';
+import { accounts, db, users } from '@fitflow/db';
+import { hashPassword, verifyPassword } from 'better-auth/crypto';
+import { and, eq } from 'drizzle-orm';
+import { z } from 'zod';
+import './env.js';
 
-async function ensureUser(input: {
-  name: string;
-  email: string;
-  password: string;
-  role: 'coach' | 'student';
-}) {
-  let [existing] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
-  if (!existing) {
-    await auth.api.signUpEmail({
-      body: { name: input.name, email: input.email, password: input.password },
-    });
-    [existing] = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+const adminEnvSchema = z.object({
+  ADMIN_NAME: z.string().trim().min(2, 'ADMIN_NAME must contain at least 2 characters.'),
+  ADMIN_EMAIL: z.string().trim().toLowerCase().email('ADMIN_EMAIL must be a valid email address.'),
+  ADMIN_PASSWORD: z
+    .string()
+    .min(12, 'ADMIN_PASSWORD must contain at least 12 characters.')
+    .max(128, 'ADMIN_PASSWORD must contain at most 128 characters.'),
+});
+
+function readAdminEnv() {
+  const result = adminEnvSchema.safeParse(process.env);
+  if (result.success) return result.data;
+
+  const details = result.error.issues
+    .map((issue) => `- ${issue.path.join('.')}: ${issue.message}`)
+    .join('\n');
+  throw new Error(
+    `Primary coach seed configuration is invalid. Set ADMIN_NAME, ADMIN_EMAIL and ADMIN_PASSWORD.\n${details}`,
+  );
+}
+
+async function ensurePrimaryCoach() {
+  const input = readAdminEnv();
+  const [existing] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, input.ADMIN_EMAIL))
+    .limit(1);
+
+  const [coach] = existing
+    ? await db
+        .update(users)
+        .set({
+          name: input.ADMIN_NAME,
+          role: 'coach',
+          emailVerified: true,
+          isActive: true,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, existing.id))
+        .returning()
+    : await db
+        .insert(users)
+        .values({
+          id: crypto.randomUUID(),
+          name: input.ADMIN_NAME,
+          email: input.ADMIN_EMAIL,
+          emailVerified: true,
+          role: 'coach',
+          isActive: true,
+        })
+        .returning();
+
+  if (!coach) throw new Error('Could not create or update the primary coach account.');
+
+  const [credentialAccount] = await db
+    .select()
+    .from(accounts)
+    .where(and(eq(accounts.userId, coach.id), eq(accounts.providerId, 'credential')))
+    .limit(1);
+  const passwordMatches = credentialAccount?.password
+    ? await verifyPassword({ hash: credentialAccount.password, password: input.ADMIN_PASSWORD })
+    : false;
+
+  if (!passwordMatches) {
+    const password = await hashPassword(input.ADMIN_PASSWORD);
+    if (credentialAccount) {
+      await db
+        .update(accounts)
+        .set({ password, updatedAt: new Date() })
+        .where(eq(accounts.id, credentialAccount.id));
+    } else {
+      await db.insert(accounts).values({
+        id: crypto.randomUUID(),
+        accountId: coach.id,
+        providerId: 'credential',
+        userId: coach.id,
+        password,
+      });
+    }
   }
-  if (!existing) throw new Error(`Could not create ${input.email}`);
-  const [updated] = await db
-    .update(users)
-    .set({ role: input.role, emailVerified: true })
-    .where(eq(users.id, existing.id))
-    .returning();
-  if (!updated) throw new Error(`Could not update ${input.email}`);
-  return updated;
+
+  return { coach, created: !existing, passwordChanged: !passwordMatches };
 }
 
 async function main() {
-  const coach = await ensureUser({
-    name: 'آرش رضایی',
-    email: 'coach@example.com',
-    password: 'Coach123!',
-    role: 'coach',
-  });
-  const student = await ensureUser({
-    name: 'نیما احمدی',
-    email: 'student@example.com',
-    password: 'Student123!',
-    role: 'student',
-  });
-
-  await db
-    .insert(coachStudents)
-    .values({ coachId: coach.id, studentId: student.id, status: 'active' })
-    .onConflictDoNothing();
-
-  const existingExercises = await db
-    .select()
-    .from(exercises)
-    .where(eq(exercises.coachId, coach.id));
-  const exerciseRows = existingExercises.length
-    ? existingExercises
-    : await db
-        .insert(exercises)
-        .values([
-          {
-            coachId: coach.id,
-            title: 'پرس سینه دمبل',
-            description: 'حرکت اصلی برای تقویت عضلات سینه و پشت بازو.',
-            instructions: 'کتف‌ها را روی نیمکت ثابت نگه دارید و دمبل‌ها را کنترل‌شده پایین بیاورید.',
-            muscleGroup: 'سینه',
-            equipment: 'دمبل و نیمکت',
-            difficulty: 'intermediate',
-          },
-          {
-            coachId: coach.id,
-            title: 'اسکوات جام',
-            description: 'حرکت چندمفصلی برای پا و عضلات مرکزی.',
-            instructions: 'زانوها هم‌جهت پنجه‌ها حرکت کنند و ستون فقرات خنثی بماند.',
-            muscleGroup: 'پا',
-            equipment: 'دمبل',
-            difficulty: 'beginner',
-          },
-          {
-            coachId: coach.id,
-            title: 'قایقی سیم‌کش',
-            description: 'تمرکز روی عضلات پشت و جمع‌کردن کتف‌ها.',
-            instructions: 'بدون تاب‌دادن تنه، دستگیره را به سمت پایین سینه بکشید.',
-            muscleGroup: 'پشت',
-            equipment: 'دستگاه سیم‌کش',
-            difficulty: 'beginner',
-          },
-        ])
-        .returning();
-
-  const [existingPlan] = await db
-    .select()
-    .from(workoutPlans)
-    .where(eq(workoutPlans.studentId, student.id))
-    .limit(1);
-
-  if (!existingPlan) {
-    const [plan] = await db
-      .insert(workoutPlans)
-      .values({
-        coachId: coach.id,
-        studentId: student.id,
-        title: 'دوره افزایش قدرت - هفته اول',
-        description: 'سه جلسه تمرین تمام‌بدن با تمرکز روی تکنیک صحیح.',
-        startDate: new Date(),
-        status: 'active',
-      })
-      .returning();
-    if (!plan) throw new Error('Plan seed failed');
-
-    const [day] = await db
-      .insert(workoutPlanDays)
-      .values({
-        workoutPlanId: plan.id,
-        title: 'تمرین تمام بدن A',
-        dayNumber: 1,
-        weekday: new Date().getDay(),
-        sortOrder: 0,
-      })
-      .returning();
-    if (!day) throw new Error('Day seed failed');
-
-    await db.insert(workoutPlanExercises).values(
-      exerciseRows.slice(0, 3).map((exercise, index) => ({
-        workoutPlanDayId: day.id,
-        exerciseId: exercise.id,
-        exerciseTitleSnapshot: exercise.title,
-        exerciseDescriptionSnapshot: exercise.description,
-        sets: index === 0 ? 4 : 3,
-        reps: index === 0 ? '8-10' : '12',
-        restSeconds: index === 0 ? 90 : 60,
-        targetWeight: index === 0 ? '16' : '12',
-        notes: 'فرم صحیح از وزن سنگین مهم‌تر است.',
-        sortOrder: index,
-      })),
-    );
-  }
-
-  const existingReports = await db
-    .select({ id: bodyReports.id })
-    .from(bodyReports)
-    .where(eq(bodyReports.studentId, student.id));
-  if (!existingReports.length) {
-    const now = new Date();
-    await db.insert(bodyReports).values(
-      [0, 1, 2, 3, 4].map((month) => ({
-        coachId: coach.id,
-        studentId: student.id,
-        recordedAt: new Date(now.getFullYear(), now.getMonth() - (4 - month), 5),
-        weightKg: String(84 - month * 1.2),
-        bodyFatPercent: String(23 - month * 0.8),
-        muscleMassKg: String(58 + month * 0.35),
-        waistCm: String(96 - month * 1.3),
-        notes: 'ثبت دوره‌ای وضعیت جسمانی',
-      })),
-    );
-  }
-
-  console.log('Seed completed.');
-  console.log('Coach: coach@example.com / Coach123!');
-  console.log('Student: student@example.com / Student123!');
+  const { coach, created, passwordChanged } = await ensurePrimaryCoach();
+  const action = created ? 'created' : 'updated';
+  const passwordStatus = passwordChanged ? ' Password synchronized from ADMIN_PASSWORD.' : '';
+  console.log(`Primary coach ${action}: ${coach.email}.${passwordStatus}`);
+  console.log('No demo students, exercises, plans, workouts, or reports were seeded.');
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error(error);
+    console.error(error instanceof Error ? error.message : error);
     process.exit(1);
   });

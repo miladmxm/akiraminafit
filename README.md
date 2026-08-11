@@ -23,6 +23,7 @@ npm install
 cp .env.example .env
 docker compose up -d
 npm run db:push
+# Set ADMIN_NAME, ADMIN_EMAIL and ADMIN_PASSWORD in .env first.
 npm run db:seed
 npm run dev
 ```
@@ -34,10 +35,11 @@ MinIO console: `http://localhost:9001`
 The UI starts in demo mode. Set `VITE_DEMO_MODE=false` in `.env` to use Better Auth and the live
 API. Disable both demo flags in production.
 
-## Seed accounts
+## Primary coach seed
 
-- Coach: `coach@example.com` / `Coach123!`
-- Student: `student@example.com` / `Student123!`
+Set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`, then run `npm run db:seed`. The
+command creates or updates that account with the `coach` role. It does not create demo students,
+exercises, plans, workouts, or reports, and it never prints the password.
 
 ## Verification
 
