@@ -15,6 +15,13 @@
       "when": 1785223207254,
       "tag": "0002_thankful_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786543134372,
+      "tag": "0003_cultured_pepper_potts",
+      "breakpoints": true
     }
   ]
 }

@@ -28,44 +28,47 @@ export const sessionStatusEnum = pgEnum('session_status', [
 ]);
 export const bodyViewEnum = pgEnum('body_view', ['front', 'side', 'back', 'other']);
 
-export const users = pgTable(
-  'users',
-  {
-    id: text('id').primaryKey(),
-    name: text('name').notNull(),
-    email: text('email').notNull(),
-    emailVerified: boolean('email_verified').notNull().default(false),
-    image: text('image'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-    role: userRoleEnum('role').notNull().default('student'),
-    phone: varchar('phone', { length: 32 }),
-    timezone: varchar('timezone', { length: 64 }).notNull().default('Asia/Tehran'),
-    locale: varchar('locale', { length: 16 }).notNull().default('fa-IR'),
-    isActive: boolean('is_active').notNull().default(true),
-  },
-  (table) => [uniqueIndex('users_email_unique').on(table.email)],
-);
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  image: text("image"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  role: text("role"),
+  banned: boolean("banned").default(false),
+  banReason: text("ban_reason"),
+  banExpires: timestamp("ban_expires"),
+  phone: text("phone"),
+  timezone: text("timezone").default("Asia/Tehran").notNull(),
+  locale: text("locale").default("fa-IR").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+});
 
 export const sessions = pgTable(
-  'sessions',
+  "sessions",
   {
-    id: text('id').primaryKey(),
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    token: text('token').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-    ipAddress: text('ip_address'),
-    userAgent: text('user_agent'),
-    userId: text('user_id')
+    id: text("id").primaryKey(),
+    expiresAt: timestamp("expires_at").notNull(),
+    token: text("token").notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+    ipAddress: text("ip_address"),
+    userAgent: text("user_agent"),
+    userId: text("user_id")
       .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+      .references(() => users.id, { onDelete: "cascade" }),
+    impersonatedBy: text("impersonated_by"),
   },
-  (table) => [
-    uniqueIndex('sessions_token_unique').on(table.token),
-    index('sessions_user_idx').on(table.userId),
-  ],
+  (table) => [index("session_userId_idx").on(table.userId)],
 );
+
 
 export const accounts = pgTable(
   'accounts',
@@ -83,8 +86,10 @@ export const accounts = pgTable(
     refreshTokenExpiresAt: timestamp('refresh_token_expires_at', { withTimezone: true }),
     scope: text('scope'),
     password: text('password'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
   },
   (table) => [index('accounts_user_idx').on(table.userId)],
 );
@@ -354,7 +359,24 @@ export const usersRelations = relations(users, ({ many }) => ({
   exercises: many(exercises),
   coachedPlans: many(workoutPlans, { relationName: 'coachPlans' }),
   assignedPlans: many(workoutPlans, { relationName: 'studentPlans' }),
+  sessions: many(sessions),
+  accounts: many(accounts),
 }));
+
+export const sessionRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const accountRelations = relations(accounts, ({ one }) => ({
+  user: one(users, {
+    fields: [accounts.userId],
+    references: [users.id],
+  }),
+}));
+
 
 export const studentProfilesRelations = relations(studentProfiles, ({ one }) => ({
   student: one(users, {

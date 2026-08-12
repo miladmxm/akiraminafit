@@ -7,6 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "esbuild src/index.ts --bundle --platform=node --format=esm --sourcemap --outfile=dist/index.js --external:@aws-sdk/* --external:@better-auth/* --external:@hono/* --external:better-auth --external:dotenv --external:drizzle-orm --external:hono --external:pg --external:zod",
     "start": "node dist/index.js",
+    "auth:generate": "pnpm dlx auth@latest generate",
     "seed": "tsx src/seed.ts",
     "typecheck": "tsc --noEmit"
   },
