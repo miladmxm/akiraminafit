@@ -7,7 +7,7 @@
     "types": ["vite/client", "vite-plugin-pwa/client"],
     "paths": {
       "@/*": ["./src/*"],
-      "@fitflow/contracts": ["../../packages/contracts/src/index.ts"]
+      "@akiraminafit/contracts": ["../../packages/contracts/src/index.ts"]
     }
   },
   "include": ["src"]

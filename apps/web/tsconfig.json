@@ -3,7 +3,7 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
-      "@fitflow/contracts": ["../../packages/contracts/src/index.ts"]
+      "@akiraminafit/contracts": ["../../packages/contracts/src/index.ts"]
     }
   },
   "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]

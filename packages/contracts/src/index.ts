@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export * from './auth-permissions.js';
+
 export const roleSchema = z.enum(['coach', 'student']);
 export type UserRole = z.infer<typeof roleSchema>;
 

@@ -1,16 +1,25 @@
-import { auth } from "./auth";
-import { env } from "./env";
+import { auth } from './auth.js';
+import { env } from './env.js';
 
-// todo : auth.api.createUser
-const findUser = await auth.api.listUsers({ query: { searchField: "email", searchValue: env.ADMIN_EMAIL } })
-console.log(findUser)
-// if (findUser.total === 0) {
-//     await auth.api.createUser({
-//         body: {
-//             email: env.ADMIN_EMAIL,
-//             name: env.ADMIN_NAME,
-//             password: env.ADMIN_PASSWORD,
-//             role: "coach"
-//         }
-//     })
-// }
+const authContext = await auth.$context;
+const existing = await authContext.internalAdapter.findUserByEmail(env.ADMIN_EMAIL);
+
+if (!existing) {
+  const { user } = await auth.api.createUser({
+    body: {
+      email: env.ADMIN_EMAIL,
+      name: env.ADMIN_NAME,
+      password: env.ADMIN_PASSWORD,
+      role: 'coach',
+      data: {
+        timezone: 'Asia/Tehran',
+        locale: 'fa-IR',
+        isActive: true,
+      },
+    },
+  });
+
+  console.log(`Coach account created: ${user.email}`);
+} else {
+  console.log(`Coach account already exists: ${existing.user.email}`);
+}

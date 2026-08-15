@@ -1,10 +1,10 @@
-import type { UserRole } from '@fitflow/contracts';
+import type { AuthRole } from '@akiraminafit/contracts';
 
 export type RequestUser = {
   id: string;
   name: string;
   email: string;
-  role: UserRole;
+  role: AuthRole;
 };
 
 export type AppEnv = {

@@ -8,7 +8,9 @@ export default defineConfig({
   schema: './src/schema.ts',
   out: './drizzle',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgresql://fitflow:fitflow@localhost:5432/fitflow',
+    url:
+      process.env.DATABASE_URL ??
+      'postgresql://akiraminafit:akiraminafit@localhost:5432/akiraminafit',
   },
   strict: true,
   verbose: true,

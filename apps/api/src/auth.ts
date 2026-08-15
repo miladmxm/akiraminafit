@@ -1,35 +1,9 @@
 import { drizzleAdapter } from '@better-auth/drizzle-adapter';
-import { db, accounts, sessions, users, verifications } from '@fitflow/db';
+import { authAccessControl, authRoles } from '@akiraminafit/contracts';
+import { db, accounts, sessions, users, verifications } from '@akiraminafit/db';
 import { betterAuth } from 'better-auth';
-import { admin, createAccessControl } from 'better-auth/plugins';
+import { admin } from 'better-auth/plugins/admin';
 import { env } from './env.js';
-
-export const statements = {
-  students: ['list', 'create', 'invite'],
-  exercises: ['list', 'create', 'update', 'delete'],
-  plans: ['view', 'create', 'publish'],
-  reports: ['view', 'create'],
-  media: ['upload', 'delete'],
-  workouts: ['view', 'update'],
-} as const;
-
-const access = createAccessControl(statements);
-
-export const roles = {
-  coach: access.newRole({
-    students: ['list', 'create', 'invite'],
-    exercises: ['list', 'create', 'update', 'delete'],
-    plans: ['view', 'create', 'publish'],
-    reports: ['view', 'create'],
-    media: ['upload', 'delete'],
-    workouts: ['view'],
-  }),
-  student: access.newRole({
-    plans: ['view'],
-    reports: ['view'],
-    workouts: ['view', 'update'],
-  }),
-} as const;
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
@@ -51,9 +25,9 @@ export const auth = betterAuth({
   },
   plugins: [
     admin({
+      ac: authAccessControl,
       defaultRole: 'student',
-      adminRoles: ['coach'],
-      roles,
+      roles: authRoles,
     }),
   ],
   user: {

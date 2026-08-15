@@ -13,15 +13,15 @@ const envSchema = z.object({
   S3_REGION: z.string().default('us-east-1'),
   S3_ACCESS_KEY: z.string().default('minioadmin'),
   S3_SECRET_KEY: z.string().default('minioadmin'),
-  S3_BUCKET: z.string().default('fitflow-media'),
-  S3_PUBLIC_URL: z.url().default('http://localhost:9000/fitflow-media'),
+  S3_BUCKET: z.string().default('akiraminafit-media'),
+  S3_PUBLIC_URL: z.url().default('http://localhost:9000/akiraminafit-media'),
   S3_FORCE_PATH_STYLE: z
     .string()
     .default('true')
     .transform((value) => value === 'true'),
   ADMIN_NAME: z.string().nonempty().min(3),
   ADMIN_EMAIL: z.email().nonempty(),
-  ADMIN_PASSWORD: z.string().nonempty().min(8)
+  ADMIN_PASSWORD: z.string().nonempty().min(8),
 });
 
 export const env = envSchema.parse(process.env);

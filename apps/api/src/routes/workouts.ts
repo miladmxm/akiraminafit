@@ -1,4 +1,4 @@
-import { sessionItemUpdateSchema } from '@fitflow/contracts';
+import { sessionItemUpdateSchema } from '@akiraminafit/contracts';
 import {
   db,
   exerciseMedia,
@@ -7,11 +7,12 @@ import {
   workoutPlans,
   workoutSessionItems,
   workoutSessions,
-} from '@fitflow/db';
+} from '@akiraminafit/db';
 import { and, asc, desc, eq, inArray, lte, or, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
+import { requirePermission } from '../middleware/auth.js';
 import type { AppEnv } from '../types.js';
 
 function tehranToday(date = new Date()) {
@@ -26,7 +27,7 @@ function tehranToday(date = new Date()) {
 }
 
 export const workoutsRoutes = new Hono<AppEnv>()
-  .get('/today', async (c) => {
+  .get('/today', requirePermission({ workouts: ['view'] }), async (c) => {
     const student = c.get('user');
     const today = tehranToday();
     const weekday = today.getUTCDay();
@@ -136,6 +137,7 @@ export const workoutsRoutes = new Hono<AppEnv>()
   })
   .patch(
     '/sessions/:sessionId',
+    requirePermission({ workouts: ['update'] }),
     zValidator('json', z.object({ studentNote: z.string().trim().max(1000) })),
     async (c) => {
       const student = c.get('user');
@@ -155,6 +157,7 @@ export const workoutsRoutes = new Hono<AppEnv>()
   )
   .patch(
     '/sessions/:sessionId/items/:itemId',
+    requirePermission({ workouts: ['update'] }),
     zValidator('json', sessionItemUpdateSchema),
     async (c) => {
       const student = c.get('user');

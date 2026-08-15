@@ -1,4 +1,4 @@
-import type { UserRole } from '@fitflow/contracts';
+import type { UserRole } from '@akiraminafit/contracts';
 import {
   Activity,
   BarChart3,

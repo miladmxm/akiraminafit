@@ -1,4 +1,4 @@
-import { coachStudents, db } from '@fitflow/db';
+import { coachStudents, db } from '@akiraminafit/db';
 import { and, eq } from 'drizzle-orm';
 
 export async function coachCanAccessStudent(coachId: string, studentId: string) {

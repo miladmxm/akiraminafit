@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import type { UserRole } from '@fitflow/contracts';
+import type { UserRole } from '@akiraminafit/contracts';
 
 const KEY = 'akiraminafit-role';
 const listeners = new Set<() => void>();

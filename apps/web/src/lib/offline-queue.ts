@@ -8,7 +8,7 @@ type QueueItem = {
   createdAt: number;
 };
 
-const DB_NAME = 'fitflow-offline';
+const DB_NAME = 'akiraminafit-offline';
 const STORE_NAME = 'mutations';
 
 function openDb(): Promise<IDBDatabase> {

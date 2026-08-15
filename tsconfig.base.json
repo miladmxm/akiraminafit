@@ -13,8 +13,8 @@
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@fitflow/db": ["./packages/db/src/index.ts"],
-      "@fitflow/contracts": ["./packages/contracts/src/index.ts"]
+      "@akiraminafit/db": ["./packages/db/src/index.ts"],
+      "@akiraminafit/contracts": ["./packages/contracts/src/index.ts"]
     }
   }
 }

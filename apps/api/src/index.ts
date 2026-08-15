@@ -5,7 +5,7 @@ import { logger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
 import { auth } from './auth.js';
 import { env } from './env.js';
-import { requireAuth, requireRole } from './middleware/auth.js';
+import { requireAuth } from './middleware/auth.js';
 import { exercisesRoutes } from './routes/exercises.js';
 import { plansRoutes } from './routes/plans.js';
 import { coachReportsRoutes, studentReportsRoutes } from './routes/reports.js';
@@ -31,12 +31,10 @@ app.use(
   }),
 );
 
-app.get('/health', (c) => c.json({ status: 'ok', service: 'fitflow-api' }));
+app.get('/health', (c) => c.json({ status: 'ok', service: 'akiraminafit-api' }));
 app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
 
 app.use('/api/*', requireAuth);
-app.use('/api/coach/*', requireRole('coach'));
-app.use('/api/student/*', requireRole('student'));
 
 app.route('/api/coach/students', studentsRoutes);
 app.route('/api/coach/exercises', exercisesRoutes);
@@ -57,7 +55,7 @@ app.onError((error, c) => {
 });
 
 serve({ fetch: app.fetch, port: env.PORT }, (info) => {
-  console.log(`FitFlow API listening on http://localhost:${info.port}`);
+  console.log(`AkiraMinaFit API listening on http://localhost:${info.port}`);
 });
 
 export type ApiType = typeof app;

@@ -12,7 +12,7 @@ const requiredFiles = [
   'apps/web/vite.config.ts',
   'apps/web/src/App.tsx',
   'packages/db/src/schema.ts',
-  'packages/db/drizzle/0000_fitflow.sql',
+  'packages/db/drizzle/0000_akiraminafit.sql',
   'packages/contracts/src/index.ts',
   'apps/web/public/pwa-192x192.png',
   'apps/web/public/pwa-512x512.png',
@@ -56,7 +56,10 @@ if (JSON.stringify(packageJson.workspaces) !== JSON.stringify(expectedWorkspaces
 }
 if (!packageJson.devDependencies?.['vite-plus']) failures.push('vite-plus is missing');
 
-const migration = await readFile(path.join(root, 'packages/db/drizzle/0000_fitflow.sql'), 'utf8');
+const migration = await readFile(
+  path.join(root, 'packages/db/drizzle/0000_akiraminafit.sql'),
+  'utf8',
+);
 for (const table of [
   'users',
   'coach_students',
@@ -94,10 +97,10 @@ if (!gitignore.split(/\r?\n/).some((line) => line.trim() === '.env' || line.trim
 }
 
 if (failures.length) {
-  console.error('FitFlow verification failed:\n- ' + failures.join('\n- '));
+  console.error('AkiraMinaFit verification failed:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
 
 console.log(
-  `FitFlow structure verified: ${files.length} files, ${files.filter((file) => /\.(ts|tsx)$/.test(file)).length} TypeScript files.`,
+  `AkiraMinaFit structure verified: ${files.length} files, ${files.filter((file) => /\.(ts|tsx)$/.test(file)).length} TypeScript files.`,
 );

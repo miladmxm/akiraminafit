@@ -1,4 +1,4 @@
-# FitFlow
+# AkiraMinaFit
 
 A full-stack Persian RTL fitness coaching MVP packaged as a Vite+ monorepo and installable PWA.
 

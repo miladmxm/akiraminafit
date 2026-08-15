@@ -1,5 +1,5 @@
 {
-  "name": "fitflow-monorepo",
+  "name": "akiraminafit",
   "version": "0.1.0",
   "private": true,
   "workspaces": [
@@ -11,14 +11,17 @@
     "dev": "vp run --filter './apps/*' dev",
     "build": "vp run --filter './apps/*' build",
     "typecheck": "vp run -r typecheck",
-    "db:generate": "vp run @fitflow/db#generate",
-    "db:migrate": "vp run @fitflow/db#migrate",
-    "db:push": "vp run @fitflow/db#push",
-    "db:seed": "vp run @fitflow/api#seed",
+    "db:generate": "vp run @akiraminafit/db#generate",
+    "db:migrate": "vp run @akiraminafit/db#migrate",
+    "db:push": "vp run @akiraminafit/db#push",
+    "db:seed": "vp run @akiraminafit/api#seed",
     "check": "vp check",
     "lint": "vp lint",
     "format": "vp fmt",
     "verify:structure": "node scripts/verify.mjs"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^24.1.0",
@@ -28,8 +31,5 @@
   "engines": {
     "node": ">=22.12.0"
   },
-  "packageManager": "npm@10.9.2",
-  "dependencies": {
-    "zod": "^4.4.3"
-  }
+  "packageManager": "npm@10.9.2"
 }
