@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "vp run --filter './apps/*' dev",
     "build": "vp run --filter './apps/*' build",
+    "start": "node scripts/start.mjs",
     "typecheck": "vp run -r typecheck",
     "db:generate": "vp run @akiraminafit/db#generate",
     "db:migrate": "vp run @akiraminafit/db#migrate",

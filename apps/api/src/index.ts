@@ -1,8 +1,11 @@
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { auth } from './auth.js';
 import { env } from './env.js';
 import { requireAuth } from './middleware/auth.js';
@@ -16,6 +19,8 @@ import { workoutsRoutes } from './routes/workouts.js';
 import type { AppEnv } from './types.js';
 
 const app = new Hono<AppEnv>();
+const publicDirectory = fileURLToPath(new URL('../public', import.meta.url));
+const hasPublicDirectory = existsSync(publicDirectory);
 
 app.use('*', logger());
 app.use('*', secureHeaders());
@@ -44,6 +49,25 @@ app.route('/api/student/reports', studentReportsRoutes);
 app.route('/api/student/plans', studentPlansRoutes);
 app.route('/api/student/workouts', workoutsRoutes);
 app.route('/api/uploads', uploadsRoutes);
+
+if (hasPublicDirectory) {
+  app.use('*', serveStatic({ root: publicDirectory }));
+
+  app.get('*', (c, next) => {
+    const acceptsHtml = c.req.header('Accept')?.includes('text/html');
+
+    if (
+      !acceptsHtml ||
+      c.req.path === '/health' ||
+      c.req.path === '/api' ||
+      c.req.path.startsWith('/api/')
+    ) {
+      return next();
+    }
+
+    return serveStatic({ root: publicDirectory, path: 'index.html' })(c, next);
+  });
+}
 
 app.notFound((c) => c.json({ message: 'مسیر پیدا نشد.' }, 404));
 app.onError((error, c) => {

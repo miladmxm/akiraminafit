@@ -11,3 +11,4 @@ coverage
 apps/web/public/sw.js
 apps/web/public/workbox-*.js
 apps/web/dev-dist
+apps/api/public

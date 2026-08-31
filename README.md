@@ -31,6 +31,19 @@ Web: `http://localhost:5173`
 API: `http://localhost:3000`  
 MinIO console: `http://localhost:9001`
 
+## Production start
+
+Set the production domain in `.env`, including `NODE_ENV=production`, `WEB_ORIGIN` and
+`BETTER_AUTH_URL`. Set `VITE_API_URL=` to serve both the web app and API from the same domain.
+Then run:
+
+```bash
+npm run start
+```
+
+The command builds the web app, replaces `apps/api/public` with its output, builds the API and
+starts it. Database migrations and Docker services are intentionally managed separately.
+
 ## Primary coach seed
 
 Set `ADMIN_NAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`, then run `npm run db:seed`. The

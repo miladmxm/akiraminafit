@@ -33,6 +33,19 @@ npm run dev
 - API: `http://localhost:3000`
 - پنل MinIO: `http://localhost:9001`
 
+## اجرای production
+
+دامنهٔ production را در `.env` تنظیم کنید؛ از جمله `NODE_ENV=production`، `WEB_ORIGIN` و
+`BETTER_AUTH_URL`. مقدار `VITE_API_URL=` را خالی بگذارید تا وب و API از یک دامنه سرو شوند. سپس
+اجرا کنید:
+
+```bash
+npm run start
+```
+
+این فرمان فرانت‌اند را build می‌کند، خروجی را جایگزین `apps/api/public` می‌کند، API را build و
+سپس اجرا می‌کند. migrationهای دیتابیس و سرویس‌های Docker عمداً جداگانه مدیریت می‌شوند.
+
 ## ساخت حساب مربی اصلی
 
 مقادیر `ADMIN_NAME`، `ADMIN_EMAIL` و `ADMIN_PASSWORD` را در فایل `.env` تنظیم و سپس
