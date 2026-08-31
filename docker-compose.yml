@@ -15,7 +15,7 @@ services:
     networks:
       - data
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
     restart: unless-stopped
     stop_grace_period: 10s
     command:
@@ -35,7 +35,7 @@ services:
       - data
 
   minio-init:
-    image: minio/mc:latest
+    image: minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1
     restart: 'on-failure:${MINIO_INIT_MAX_RETRIES:?MINIO_INIT_MAX_RETRIES is required}'
     depends_on:
       minio:
