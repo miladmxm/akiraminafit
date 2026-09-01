@@ -26,6 +26,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-*}
     ports:
       - '${MINIO_API_PORT:?MINIO_API_PORT is required}:9000'
       - '${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT is required}:9001'

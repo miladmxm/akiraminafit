@@ -11,6 +11,7 @@ A full-stack Persian RTL fitness coaching MVP packaged as a Vite+ monorepo and i
 - S3-compatible image/video uploads with local MinIO
 - Workout plan builder, weekday scheduling and immutable exercise snapshots
 - Daily student workout Todo, actual completion records and offline mutation queue
+- User-controlled offline downloads for workout images and videos
 - Body report history and progress charts
 
 ## Quick start
@@ -60,3 +61,7 @@ npm run build
 
 For production, use a private media bucket, signed read URLs, video scanning/transcoding, HTTPS,
 rate limiting and managed backups.
+
+For offline media downloads, set `MINIO_API_CORS_ALLOW_ORIGIN` to the web application's origin
+(for example, `https://akiraminafit.ir`) and retain `GET` and `HEAD` access in the bucket CORS
+policy.

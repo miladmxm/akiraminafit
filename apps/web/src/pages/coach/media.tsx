@@ -314,6 +314,7 @@ export function CoachMediaPage() {
                     src={item.url}
                     muted
                     preload="metadata"
+                    crossOrigin="anonymous"
                     className="size-full object-cover"
                   />
                   <span className="absolute inset-0 grid place-items-center bg-[var(--overlay)] text-primary-foreground">

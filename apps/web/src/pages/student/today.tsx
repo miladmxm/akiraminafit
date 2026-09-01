@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Circle,
   Clock3,
+  Download,
   Dumbbell,
   Flame,
   Info,
@@ -12,6 +13,7 @@ import {
   RotateCcw,
   Scale,
   TimerReset,
+  Trash2,
   Trophy,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -37,6 +39,12 @@ import { apiFetch, apiUrl } from '@/lib/api';
 import type { ExerciseMediaItem } from '@/lib/exercise-media';
 import { workoutNoteSchema, type WorkoutNoteFormValues } from '@/lib/form-schemas';
 import { enqueueMutation } from '@/lib/offline-queue';
+import {
+  downloadOfflineMedia,
+  getOfflineMediaStatus,
+  removeOfflineMedia,
+  type OfflineMediaProgress,
+} from '@/lib/offline-media';
 import { cn, formatFaDate, formatFaNumber, percent } from '@/lib/utils';
 
 type TodayApiResponse = {
@@ -79,6 +87,9 @@ export function StudentTodayPage() {
   const [completed, setCompleted] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState('');
+  const [offlineProgress, setOfflineProgress] = useState<OfflineMediaProgress | null>(null);
+  const [offlineMediaStatus, setOfflineMediaStatus] = useState({ total: 0, downloaded: 0 });
+  const [isUpdatingOfflineMedia, setIsUpdatingOfflineMedia] = useState(false);
   const {
     register,
     handleSubmit,
@@ -133,6 +144,55 @@ export function StudentTodayPage() {
     () => workoutItems.find((item) => item.id === activeId) ?? null,
     [activeId, workoutItems],
   );
+  const workoutMediaUrls = useMemo(
+    () => workoutItems.flatMap((item) => item.media.map((media) => media.url)),
+    [workoutItems],
+  );
+
+  const refreshOfflineMediaStatus = async () => {
+    try {
+      setOfflineMediaStatus(await getOfflineMediaStatus(workoutMediaUrls));
+    } catch {
+      // The rest of the workout must remain usable on browsers without Cache Storage.
+    }
+  };
+
+  useEffect(() => {
+    void refreshOfflineMediaStatus();
+  }, [workoutMediaUrls]);
+
+  const downloadWorkoutMedia = async () => {
+    if (!navigator.onLine) {
+      setSyncStatus('برای دانلود فایل‌های آموزشی باید به اینترنت وصل باشی.');
+      return;
+    }
+
+    setIsUpdatingOfflineMedia(true);
+    setOfflineProgress({ completed: 0, total: workoutMediaUrls.length, downloadedBytes: 0 });
+    try {
+      const status = await downloadOfflineMedia(workoutMediaUrls, setOfflineProgress);
+      setOfflineMediaStatus(status);
+      setSyncStatus('فایل‌های آموزشی این تمرین برای استفاده آفلاین آماده‌اند.');
+    } catch (error) {
+      setSyncStatus(error instanceof Error ? error.message : 'دانلود آفلاین فایل‌ها ناموفق بود.');
+    } finally {
+      setIsUpdatingOfflineMedia(false);
+      setOfflineProgress(null);
+    }
+  };
+
+  const removeWorkoutMedia = async () => {
+    setIsUpdatingOfflineMedia(true);
+    try {
+      await removeOfflineMedia(workoutMediaUrls);
+      await refreshOfflineMediaStatus();
+      setSyncStatus('فایل‌های دانلودشدهٔ این تمرین از حافظه دستگاه حذف شدند.');
+    } catch {
+      setSyncStatus('حذف فایل‌های آفلاین ناموفق بود.');
+    } finally {
+      setIsUpdatingOfflineMedia(false);
+    }
+  };
 
   const queueToggle = async (
     sessionId: string,
@@ -284,6 +344,49 @@ export function StudentTodayPage() {
             </div>
             <Progress value={progress} className="h-3 bg-brand-foreground/20" />
           </div>
+          {workoutMediaUrls.length > 0 && (
+            <div className="mt-6 flex flex-col gap-3 border-t border-brand-foreground/15 pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold">آموزش‌ها برای تمرین آفلاین</p>
+                <p className="mt-1 text-xs leading-5 text-brand-foreground/70">
+                  {isUpdatingOfflineMedia && offlineProgress
+                    ? `در حال دریافت ${formatFaNumber(offlineProgress.completed)} از ${formatFaNumber(offlineProgress.total)} فایل...`
+                    : offlineMediaStatus.downloaded === offlineMediaStatus.total
+                      ? `${formatFaNumber(offlineMediaStatus.total)} فایل روی این دستگاه آماده است.`
+                      : `${formatFaNumber(offlineMediaStatus.downloaded)} از ${formatFaNumber(offlineMediaStatus.total)} فایل ذخیره شده است.`}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                {offlineMediaStatus.downloaded > 0 && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={isUpdatingOfflineMedia}
+                    onClick={() => void removeWorkoutMedia()}
+                  >
+                    <Trash2 data-icon="inline-start" /> حذف
+                  </Button>
+                )}
+                {offlineMediaStatus.downloaded !== offlineMediaStatus.total && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={isUpdatingOfflineMedia || !navigator.onLine}
+                    onClick={() => void downloadWorkoutMedia()}
+                  >
+                    {isUpdatingOfflineMedia ? (
+                      <Spinner data-icon="inline-start" />
+                    ) : (
+                      <Download data-icon="inline-start" />
+                    )}
+                    دانلود آفلاین
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

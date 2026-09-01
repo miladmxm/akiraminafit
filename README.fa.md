@@ -10,6 +10,7 @@
 - برنامه‌ساز تمرینی با روز هفته، ست، تکرار، وزن و استراحت
 - اجرای روزانه برنامه به‌صورت Todo و ثبت عملکرد واقعی
 - صف IndexedDB برای همگام‌سازی Todo در حالت آفلاین
+- دانلود کنترل‌شدهٔ تصویر و ویدیوی تمرین برای مشاهده آفلاین
 - ثبت تاریخچه وضعیت جسمانی و نمودارهای پیشرفت
 - PostgreSQL، Drizzle ORM، migration و seed آماده
 
@@ -69,6 +70,8 @@ npm run verify:structure
 ## نکات production
 
 - bucket رسانه را private کنید و signed read URL برگردانید.
+- برای قابلیت دانلود آفلاین رسانه، `MINIO_API_CORS_ALLOW_ORIGIN` را روی origin وب‌سایت (مثلاً
+  `https://akiraminafit.ir`) بگذارید و اجازهٔ `GET` و `HEAD` را در CORS bucket حفظ کنید.
 - برای ویدیوها اسکن بدافزار، transcoding و thumbnail generation اضافه کنید.
 - HTTPS، secret قوی، rate limiting و backup مدیریت‌شده PostgreSQL فعال شود.
 - دسترسی عمومی MinIO در `docker-compose.yml` فقط برای توسعه محلی است.

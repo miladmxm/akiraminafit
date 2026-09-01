@@ -49,12 +49,15 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: ({ request }) => request.destination === 'image',
+            urlPattern: ({ request }) =>
+              request.destination === 'image' || request.destination === 'video',
             handler: 'CacheFirst',
             options: {
-              cacheName: 'akiraminafit-images',
-              expiration: { maxEntries: 80, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheName: 'akiraminafit-training-media-v1',
               cacheableResponse: { statuses: [0, 200] },
+              // Video elements request byte ranges. Workbox can serve those ranges
+              // from the complete response stored by the explicit offline download.
+              rangeRequests: true,
             },
           },
         ],

@@ -93,6 +93,7 @@ export function ExerciseMediaGallery({
             controls
             playsInline
             preload="metadata"
+            crossOrigin="anonymous"
             className="size-full object-contain"
             aria-label={`${title} - ویدیوی ${formatFaNumber(activeIndex + 1)}`}
           />
