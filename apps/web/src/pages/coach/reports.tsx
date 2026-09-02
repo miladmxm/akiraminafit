@@ -249,6 +249,7 @@ export function CoachReportsPage() {
                             id="report-date"
                             value={field.value}
                             onChange={field.onChange}
+                            invalid={Boolean(errors.recordedAt)}
                             required
                           />
                         )}

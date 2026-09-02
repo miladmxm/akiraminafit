@@ -435,6 +435,7 @@ export function CoachPlanBuilderPage() {
                           id="plan-start-date"
                           value={field.value}
                           onChange={field.onChange}
+                          invalid={Boolean(errors.startDate)}
                           required
                         />
                       )}

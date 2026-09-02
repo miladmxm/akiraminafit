@@ -283,6 +283,9 @@ export function CoachStudentsPage() {
                           id="student-birth-date"
                           value={field.value}
                           onChange={field.onChange}
+                          invalid={Boolean(errors.birthDate)}
+                          defaultMonth={new Date(new Date().getFullYear() - 25, 0, 1, 12)}
+                          maxDate={new Date()}
                         />
                       )}
                     />
