@@ -37,6 +37,19 @@ export const studentSchema = v.object({
 
 export type StudentFormValues = v.InferInput<typeof studentSchema>;
 
+export const studentEditSchema = v.object({
+  name: requiredText('نام و نام خانوادگی را وارد کن.'),
+  email: v.pipe(requiredText('ایمیل ورود را وارد کن.'), v.email('یک ایمیل معتبر وارد کن.')),
+  phone: requiredText('شماره موبایل را وارد کن.'),
+  password: optionalText,
+  goal: requiredText('هدف تمرینی شاگرد را وارد کن.'),
+  birthDate: optionalText,
+  gender: v.union([v.literal(''), v.literal('male'), v.literal('female'), v.literal('other')]),
+  heightCm: optionalNumberText(1, 300, 'قد باید بین ۱ تا ۳۰۰ سانتی‌متر باشد.'),
+  initialWeightKg: optionalNumberText(1, 500, 'وزن باید بین ۱ تا ۵۰۰ کیلوگرم باشد.'),
+  medicalNotes: optionalText,
+});
+
 const exerciseMediaTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm'];
 
 export const exerciseSchema = v.object({

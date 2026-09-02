@@ -1,7 +1,7 @@
 import { createAccessControl } from 'better-auth/plugins/access';
 
 export const authStatements = {
-  students: ['list', 'create', 'invite'],
+  students: ['list', 'create', 'invite', 'update', 'delete'],
   exercises: ['list', 'create', 'update', 'delete'],
   plans: ['view', 'create', 'publish'],
   reports: ['view', 'create'],
@@ -13,7 +13,7 @@ export const authAccessControl = createAccessControl(authStatements);
 
 export const authRoles = {
   coach: authAccessControl.newRole({
-    students: ['list', 'create', 'invite'],
+    students: ['list', 'create', 'invite', 'update', 'delete'],
     exercises: ['list', 'create', 'update', 'delete'],
     plans: ['view', 'create', 'publish'],
     reports: ['view', 'create'],

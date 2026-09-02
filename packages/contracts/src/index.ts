@@ -22,6 +22,9 @@ export const studentCreateSchema = z.object({
 });
 export type StudentCreateInput = z.infer<typeof studentCreateSchema>;
 
+export const studentUpdateSchema = studentCreateSchema.omit({ password: true });
+export type StudentUpdateInput = z.infer<typeof studentUpdateSchema>;
+
 export const exerciseInputSchema = z.object({
   title: z.string().trim().min(2).max(120),
   description: z.string().trim().max(1000).default(''),

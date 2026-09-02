@@ -1,4 +1,4 @@
-import { studentCreateSchema } from '@akiraminafit/contracts';
+import { studentCreateSchema, studentUpdateSchema, userIdSchema } from '@akiraminafit/contracts';
 import { coachStudents, db, studentProfiles, users } from '@akiraminafit/db';
 import { and, desc, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -124,5 +124,96 @@ export const studentsRoutes = new Hono<AppEnv>()
         });
 
       return c.json({ message: 'شاگرد به فهرست شما اضافه شد.' }, 201);
+    },
+  )
+  .patch(
+    '/:studentId',
+    requirePermission({ students: ['update'] }),
+    zValidator('param', z.object({ studentId: userIdSchema })),
+    zValidator('json', studentUpdateSchema),
+    async (c) => {
+      const coach = c.get('user');
+      const { studentId } = c.req.valid('param');
+      const input = c.req.valid('json');
+      const [relation] = await db
+        .select({ id: coachStudents.id })
+        .from(coachStudents)
+        .where(
+          and(
+            eq(coachStudents.coachId, coach.id),
+            eq(coachStudents.studentId, studentId),
+            eq(coachStudents.status, 'active'),
+          ),
+        )
+        .limit(1);
+
+      if (!relation) return c.json({ message: 'شاگرد موردنظر پیدا نشد.' }, 404);
+
+      const authContext = await auth.$context;
+      const userWithEmail = await authContext.internalAdapter.findUserByEmail(input.email);
+      if (userWithEmail && userWithEmail.user.id !== studentId) {
+        return c.json({ message: 'حساب دیگری با این ایمیل وجود دارد.' }, 409);
+      }
+
+      await db.transaction(async (tx) => {
+        await tx
+          .update(users)
+          .set({ name: input.name, email: input.email, phone: input.phone })
+          .where(eq(users.id, studentId));
+        await tx
+          .insert(studentProfiles)
+          .values({
+            studentId,
+            goal: input.goal,
+            birthDate: input.birthDate,
+            gender: input.gender,
+            heightCm: input.heightCm?.toString() ?? null,
+            initialWeightKg: input.initialWeightKg?.toString() ?? null,
+            medicalNotes: input.medicalNotes,
+          })
+          .onConflictDoUpdate({
+            target: studentProfiles.studentId,
+            set: {
+              goal: input.goal,
+              birthDate: input.birthDate,
+              gender: input.gender,
+              heightCm: input.heightCm?.toString() ?? null,
+              initialWeightKg: input.initialWeightKg?.toString() ?? null,
+              medicalNotes: input.medicalNotes,
+              updatedAt: new Date(),
+            },
+          });
+      });
+
+      return c.json({ message: 'اطلاعات شاگرد با موفقیت ویرایش شد.' });
+    },
+  )
+  .delete(
+    '/:studentId',
+    requirePermission({ students: ['delete'] }),
+    zValidator('param', z.object({ studentId: userIdSchema })),
+    async (c) => {
+      const coach = c.get('user');
+      const { studentId } = c.req.valid('param');
+      const [relation] = await db
+        .select({ id: coachStudents.id })
+        .from(coachStudents)
+        .where(
+          and(
+            eq(coachStudents.coachId, coach.id),
+            eq(coachStudents.studentId, studentId),
+            eq(coachStudents.status, 'active'),
+          ),
+        )
+        .limit(1);
+
+      if (!relation) return c.json({ message: 'شاگرد موردنظر پیدا نشد.' }, 404);
+
+      await db
+        .update(coachStudents)
+        .set({ status: 'archived', endedAt: new Date() })
+        .where(eq(coachStudents.id, relation.id));
+
+      return c.json({ message: 'شاگرد از فهرست شما حذف شد.' });
     },
   );
