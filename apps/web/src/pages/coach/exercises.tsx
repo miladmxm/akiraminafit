@@ -114,7 +114,7 @@ function ExerciseEditor({
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col overflow-hidden p-0 sm:max-h-[min(48rem,calc(100dvh-2rem))] sm:max-w-2xl">
+      <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] flex-col overflow-clip p-0 sm:max-h-[min(48rem,calc(100dvh-2rem))] sm:max-w-2xl">
         <DialogHeader className="mb-0 shrink-0 border-b p-5 pe-14">
           <DialogTitle>{mode === 'create' ? 'تعریف حرکت تمرینی' : 'ویرایش حرکت'}</DialogTitle>
           <DialogDescription>

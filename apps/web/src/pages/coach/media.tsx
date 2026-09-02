@@ -33,7 +33,6 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty';
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -183,33 +182,33 @@ export function CoachMediaPage() {
                   </Field>
                   <Field data-invalid={Boolean(errors.files)}>
                     <FieldLabel htmlFor="media-files">فایل‌های آموزشی</FieldLabel>
-                    <label
-                      htmlFor="media-files"
-                      className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed bg-muted/50 p-6 text-center transition-colors hover:border-primary hover:bg-primary/5"
-                    >
-                      <Upload className="size-7 text-primary" />
-                      <span className="text-sm font-bold">تصویرها و ویدیوها را انتخاب کن</span>
-                      <span className="text-xs text-muted-foreground">
-                        حداکثر ۱۰ فایل در هر بار
-                      </span>
-                    </label>
                     <Controller
                       control={control}
                       name="files"
                       render={({ field: { onChange, ref } }) => (
-                        <Input
-                          id="media-files"
-                          ref={ref}
-                          className="sr-only"
-                          type="file"
-                          multiple
-                          accept={EXERCISE_MEDIA_ACCEPT}
-                          aria-invalid={Boolean(errors.files)}
-                          onChange={(event) => {
-                            onChange([...selectedFiles, ...Array.from(event.target.files ?? [])]);
-                            event.target.value = '';
-                          }}
-                        />
+                        <label
+                          htmlFor="media-files"
+                          className="relative flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed bg-muted/50 p-6 text-center transition-colors hover:border-primary hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary/30"
+                        >
+                          <Upload className="size-7 text-primary" />
+                          <span className="text-sm font-bold">تصویرها و ویدیوها را انتخاب کن</span>
+                          <span className="text-xs text-muted-foreground">
+                            حداکثر ۱۰ فایل در هر بار
+                          </span>
+                          <input
+                            id="media-files"
+                            ref={ref}
+                            className="absolute inset-0 size-full cursor-pointer opacity-0"
+                            type="file"
+                            multiple
+                            accept={EXERCISE_MEDIA_ACCEPT}
+                            aria-invalid={Boolean(errors.files)}
+                            onChange={(event) => {
+                              onChange([...selectedFiles, ...Array.from(event.target.files ?? [])]);
+                              event.target.value = '';
+                            }}
+                          />
+                        </label>
                       )}
                     />
                     {selectedFiles.length > 0 && (

@@ -128,31 +128,33 @@ export function ExerciseFormFields({
       </Field>
       <Field className="sm:col-span-2" data-invalid={Boolean(errors.files)}>
         <FieldLabel htmlFor={`${idPrefix}-files`}>فایل‌های آموزشی (اختیاری)</FieldLabel>
-        <label
-          htmlFor={`${idPrefix}-files`}
-          className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed bg-muted/50 p-6 text-center transition-colors hover:border-primary hover:bg-primary/5"
-        >
-          <Upload className="size-7 text-primary" />
-          <span className="text-sm font-bold">تصاویر و ویدیوها را همزمان انتخاب کن</span>
-          {files.length > 0 && <Badge variant="secondary">{files.length} فایل انتخاب شده</Badge>}
-        </label>
         <Controller
           control={control}
           name="files"
           render={({ field: { onChange, ref } }) => (
-            <Input
-              id={`${idPrefix}-files`}
-              ref={ref}
-              className="sr-only"
-              type="file"
-              multiple
-              accept={EXERCISE_MEDIA_ACCEPT}
-              aria-invalid={Boolean(errors.files)}
-              onChange={(event) => {
-                onChange([...files, ...Array.from(event.target.files ?? [])]);
-                event.target.value = '';
-              }}
-            />
+            <label
+              htmlFor={`${idPrefix}-files`}
+              className="relative flex cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-2xl border-2 border-dashed bg-muted/50 p-6 text-center transition-colors hover:border-primary hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary/30"
+            >
+              <Upload className="size-7 text-primary" />
+              <span className="text-sm font-bold">تصاویر و ویدیوها را همزمان انتخاب کن</span>
+              {files.length > 0 && (
+                <Badge variant="secondary">{files.length} فایل انتخاب شده</Badge>
+              )}
+              <input
+                id={`${idPrefix}-files`}
+                ref={ref}
+                className="absolute inset-0 size-full cursor-pointer opacity-0"
+                type="file"
+                multiple
+                accept={EXERCISE_MEDIA_ACCEPT}
+                aria-invalid={Boolean(errors.files)}
+                onChange={(event) => {
+                  onChange([...files, ...Array.from(event.target.files ?? [])]);
+                  event.target.value = '';
+                }}
+              />
+            </label>
           )}
         />
         {files.length > 0 && (
